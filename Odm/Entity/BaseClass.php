@@ -66,7 +66,7 @@ class BaseClass
         $this->prepareProps()->preparePropAnnotations();
         if (is_null($record))
         {
-            $this->dateAdded = new DateTime('now', new DateTimeZone($timezone));
+            $this->dateAdded = new \DateTime('now', new \DateTimeZone($timezone));
             $this->record = $record;
             $this->dateUpdated = $this->dateAdded;
             $this->setDefaults();
@@ -260,7 +260,7 @@ class BaseClass
 
                 if (count($arguments) != 1)
                 {
-                    throw new Exception("Setter for $name requires exactly one parameter.");
+                    throw new \Exception("Setter for $name requires exactly one parameter.");
                 }
 
                 $colType = 'BiberLtd\\Bundle\\Phorient\\Odm\\Types\\' . $this->getColumnType($property);
@@ -341,7 +341,7 @@ class BaseClass
                 break;
 
             default:
-                throw new Exception("Property $name doesn't exist.");
+                throw new \Exception("Property $name doesn't exist.");
                 break;
         }
     }
@@ -375,7 +375,7 @@ class BaseClass
     final private function prepareProps()
     {
         $reflectionClass = new \ReflectionClass($this);
-        $this->props = $reflectionClass->getProperties(ReflectionProperty::IS_PUBLIC);
+        $this->props = $reflectionClass->getProperties(\ReflectionProperty::IS_PUBLIC);
         return $this;
     }
 
@@ -387,7 +387,7 @@ class BaseClass
         $annoReader = new AnnotationReader();
         foreach($this->props as $aProperty)
         {
-            $aPropertyReflection = new ReflectionProperty(get_class($this) , $aProperty->getName());
+            $aPropertyReflection = new \ReflectionProperty(get_class($this) , $aProperty->getName());
             $this->propAnnotations[$aProperty->getName() ] = $annoReader->getPropertyAnnotations($aPropertyReflection);
         }
 
@@ -402,7 +402,7 @@ class BaseClass
      */
     public function getColumnDefinition($propertyName)
     {
-        $aPropertyReflection = new ReflectionProperty(get_class($this) , $propertyName);
+        $aPropertyReflection = new \ReflectionProperty(get_class($this) , $propertyName);
         $annoReader = new AnnotationReader();
         $propAnnotations = $annoReader->getPropertyAnnotations($aPropertyReflection);
         foreach($propAnnotations as $aPropAnnotation)
@@ -464,7 +464,7 @@ class BaseClass
      */
     public function getRepObject(array $props = null)
     {
-        $objRepresentation = new stdClass();
+        $objRepresentation = new \stdClass();
         if (isset($this->controller->dateTimeFormat))
         {
             $dtFormat = $this->controller->dateTimeFormat;
@@ -494,7 +494,7 @@ class BaseClass
                             $collection[] = '#' . $anItem->cluster . ':' . $anItem->position;
                         }
                         else
-                            if ($anItem instanceOf DateTime)
+                            if ($anItem instanceOf \DateTime)
                             {
                                 $collection[] = $anItem->format($dtFormat);
                             }
@@ -512,7 +512,7 @@ class BaseClass
                     $objRepresentation->$propName = $collection;
                 }
                 else
-                    if (method_exists($this->$propName, 'getValue') && $this->$propName->getValue() instanceOf DateTime)
+                    if (method_exists($this->$propName, 'getValue') && $this->$propName->getValue() instanceOf \DateTime)
                     {
                         $objRepresentation->$propName = $this->$propName->getValue()->format($dtFormat);
                     }
