@@ -1,0 +1,27 @@
+{
+    "name": "biberltd/phorient",
+    "type": "symfony-bundle",
+    "description": "Wrapper for OrientTech's PhpOrient driver. (May evolve into a basic ODM in the future).",
+    "keywords": ["orientdb", "symfony3"],
+    "homepage": "https://github.com/biberltd/phorient",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Can Berkol",
+            "email": "can.berkol@biberltd.com"
+        }
+    ],
+    "require": {
+        "ostico/phporient": "^1.2",
+        "symfony/process": "^3.0",
+        "symfony/filesystem": "^3.0"
+    },
+    "autoload": {
+        "psr-0": {
+            "BiberLtd\\Bundle\\Phorient": ""
+        }
+
+    },
+    "minimum-stability": "dev",
+    "target-dir": "BiberLtd/Bundle/Phorient/"
+}
