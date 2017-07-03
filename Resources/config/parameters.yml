@@ -1,0 +1,9 @@
+parameters:
+    oriebtdb:
+      root:
+        username: "root"
+        password: "bbr0609"
+      default:
+        hostname: "localhost"
+        port: 2480
+        token: false
