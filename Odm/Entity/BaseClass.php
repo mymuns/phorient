@@ -365,7 +365,7 @@ class BaseClass
 
     private function getNameSpace()
     {
-        $reflectionClass = new ReflectionClass($this);
+        $reflectionClass = new \ReflectionClass($this);
         return $reflectionClass->getNamespaceName() . '\\';
     }
 
@@ -374,7 +374,7 @@ class BaseClass
      */
     final private function prepareProps()
     {
-        $reflectionClass = new ReflectionClass($this);
+        $reflectionClass = new \ReflectionClass($this);
         $this->props = $reflectionClass->getProperties(ReflectionProperty::IS_PUBLIC);
         return $this;
     }
