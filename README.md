@@ -4,7 +4,7 @@ of Docreine ORM as well as Ostico's PHPOrient bundle.
 
 
 # Parameters
-
+```
 orientdb:
         root:
             username: root
@@ -16,16 +16,19 @@ orientdb:
                 hostname: localhost
                 port: 2424
                 token: null
+```
                 
 # Using
 
-
+```
 $this->cm = new ClassManager($containerInterface);
 $this->cm->setEntityPath('AppBundle','\\AppBundle\\Entity\\');
 $this->cm->createConnection('Dbname');
 
+```
 or
 
+```
 $config = array(
   'database' => array(
     'Dbname' => array(
@@ -40,6 +43,7 @@ $config = array(
 $this->cm = new ClassManager();
 $this->cm->setEntityPath('AppBundle','\\AppBundle\\Entity\\');
 $this->cm->createConnection('Dbname',$config);
+```
         
 # LICENSE
 Copyright 2017 Biber Ltd. (www.biberltd.com), founding partner of BO Development Office (www.bodevoffice.com)
