@@ -2,6 +2,45 @@
 This bundle is an attempt to create an ODM which is for Orient DB database. The ODM is inspired by and depends on several libraries 
 of Docreine ORM as well as Ostico's PHPOrient bundle.
 
+
+# Parameters
+
+orientdb:
+        root:
+            username: root
+            password: root
+        database:
+            Dbname:
+                username: root
+                password: root
+                hostname: localhost
+                port: 2424
+                token: null
+                
+# Using
+
+
+$this->cm = new ClassManager($containerInterface);
+$this->cm->setEntityPath('AppBundle','\\AppBundle\\Entity\\');
+$this->cm->createConnection('Dbname');
+
+or
+
+$config = array(
+  'database' => array(
+    'Dbname' => array(
+      'username'=>'root',
+      'password'=>'root',
+      'hostname'=>'localhost',
+      'port'=>2424,
+      'token'=>null
+     )
+  )
+);
+$this->cm = new ClassManager();
+$this->cm->setEntityPath('AppBundle','\\AppBundle\\Entity\\');
+$this->cm->createConnection('Dbname',$config);
+        
 # LICENSE
 Copyright 2017 Biber Ltd. (www.biberltd.com), founding partner of BO Development Office (www.bodevoffice.com)
 
