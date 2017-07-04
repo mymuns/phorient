@@ -56,9 +56,9 @@ class OBoolean extends BaseType{
 	 * @throws \BiberLtd\Bundle\Phorient\Odm\Exceptions\InvalidValueException
 	 */
 	public function validateValue($value){
-		if(!is_bool($value)){
-			throw new InvalidValueException($this);
-		}
+        if(!is_bool($value) and !is_null($value)){
+            throw new InvalidValueException($this);
+        }
 		return true;
 	}
 
