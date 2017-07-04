@@ -25,7 +25,7 @@ class ClassManager
     public $currentDb;
     private $entityPath;
 
-    public function __construct(ContainerInterface $container, CMConfig $config=null)
+    public function __construct(ContainerInterface $container =  null, CMConfig $config=null)
     {
         $this->config = $config;
         $this->container = $container;
@@ -38,13 +38,15 @@ class ClassManager
     {
         return $this->annotationReader;
     }
-    public function createConnection($dbName)
+    public function createConnection($dbName,$dbInfo=null)
     {
-
-        $dbInfo =  $this->container->get('service_container')->getParameter('orientdb');
-        unset($container);
-        if(!isset($dbInfo['database'][$dbName])){
-            throw new \Exception("Please check your parameters.yml for Orient Database connection");
+        if($dbInfo==null)
+        {
+            $dbInfo =  $this->container->get('service_container')->getParameter('orientdb');
+            unset($container);
+            if(!isset($dbInfo['database'][$dbName])){
+                throw new \Exception("Please check your parameters.yml for Orient Database connection");
+            }
         }
         $this->config[$dbName] = new CMConfig();
         $this->config[$dbName]->setHost($dbInfo['database'][$dbName]['hostname']);
