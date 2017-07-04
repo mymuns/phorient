@@ -454,6 +454,8 @@ class BaseClass
                 return $this->outputToJson($props);
             case 'xml':
                 return $this->outputToXml($props);
+            case 'array':
+                return json_decode($this->outputToJson($props), true);
         }
     }
 
