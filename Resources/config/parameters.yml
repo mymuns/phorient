@@ -1,9 +1,12 @@
 parameters:
-    oriebtdb:
+    orientdb:
       root:
         username: "root"
-        password: "bbr0609"
-      default:
-        hostname: "localhost"
-        port: 2480
-        token: false
+        password: "root"
+      database:
+        dbname:
+          username: root
+          password: root
+          hostname: localhost
+          port: 2424
+          token: null

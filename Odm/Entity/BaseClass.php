@@ -276,7 +276,7 @@ class BaseClass
                         {
                             $linkedObj = $this->getNameSpace() . $this->getColumnOptions($property) ['class'];
                             $repoClass = $this->createRepository($this->getColumnOptions($property) ['class']);
-                            $data = $onrow ? [$arguments[0]] : $arguments[0];
+                            $data = $onrow ? [$arguments[0]] : (is_null($arguments[0]) ? [] : $arguments[0]);
                             $obj = [];
                             foreach($data as $item)
                             {

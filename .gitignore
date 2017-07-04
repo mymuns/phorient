@@ -36,6 +36,6 @@
 
 # Build data
 /build/
-
+/.idea/*
 # Backup entities generated with doctrine:generate:entities command
 **/Entity/*~

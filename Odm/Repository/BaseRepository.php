@@ -489,4 +489,9 @@ abstract class BaseRepository implements RepositoryInterface {
     {
         $this->class = $class;
     }
+
+    public function getClassManager()
+    {
+        return $this->cm;
+    }
 }
