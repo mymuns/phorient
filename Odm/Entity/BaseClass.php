@@ -75,7 +75,6 @@ class BaseClass
         {
             $this->convertRecordToOdmObject($record);
         }
-
         // $this->versionHistory[] = $this->output('json');
 
         $this->versionHash = md5(array_pop($this->versionHistory));
@@ -178,7 +177,9 @@ class BaseClass
     public function convertRecordToOdmObject(ORecord $record)
     {
         $this->rid = new ORecordId($record->getRid());
+
         $recordData = $record->getOData();
+
         foreach($this->propAnnotations as $propName => $propAnnotations)
         {
             if ($propName == 'rid')
@@ -244,11 +245,6 @@ class BaseClass
                         break;
 
                     default:
-                        if ($property == null)
-                        {
-                            exit;
-                        }
-
                         return $this->ifHasLinkedClass($property) ? $this->$property : (is_object($this->$property) ? $this->$property->getValue() : null);
                 }
 
@@ -280,11 +276,14 @@ class BaseClass
                             $obj = [];
                             foreach($data as $item)
                             {
+
                                 if ($item != null)
                                 {
                                     if ($item instanceof ID)
                                     {
+
                                         $response = $repoClass->selectByRid($item);
+
                                         if ($response->code == 200) $obj[] = new $linkedObj($this->cm, $response->result);
                                     }
                                     else
@@ -295,10 +294,11 @@ class BaseClass
                                 else
                                 {
                                     $obj[] = new $linkedObj($this->cm);
+                                    //$obj[] = null;
                                 }
                             }
-
-                            $this->$property = $onrow ? $obj[0] : $obj;
+                            // $this->$property = $onrow ? $obj[0] : $obj;
+                            $this->$property = $onrow ? new $colType($obj[0]) : new $colType($obj);
                         }
                         else
                         {
@@ -475,7 +475,6 @@ class BaseClass
         {
             $dtFormat = 'd.m.Y H:i:s';
         }
-
         foreach($this->props as $aProperty)
         {
             $propName = $aProperty->getName();
@@ -483,11 +482,12 @@ class BaseClass
             {
                 continue;
             }
-
+            $propOptions = $this->getColumnOptions($propName);
             if (!is_null($this->$propName))
             {
                 if (method_exists($this->$propName, 'getValue') && is_array($this->$propName->getValue()))
                 {
+                    // TODO: Embedded = TRUE ile ilgili çalışmalara devam edilecek.
                     $collection = [];
                     foreach($this->$propName->getValue() as $anItem)
                     {
@@ -513,21 +513,35 @@ class BaseClass
 
                     $objRepresentation->$propName = $collection;
                 }
-                else
-                    if (method_exists($this->$propName, 'getValue') && $this->$propName->getValue() instanceOf \DateTime)
-                    {
-                        $objRepresentation->$propName = $this->$propName->getValue()->format($dtFormat);
+                else if (method_exists($this->$propName, 'getValue') && $this->$propName->getValue() instanceOf \DateTime)
+                {
+
+                    $objRepresentation->$propName = $this->$propName->getValue()->format($dtFormat);
+                }
+                else if (method_exists($this->$propName, 'getValue') && $this->$propName->getValue() instanceOf ID)
+                {
+                    if($this->getColumnType($propName) == 'OLink' && isset($propOptions['embedded']) && $propOptions['embedded'] == true){
+                        $objRepresentation->$propName = $this->$propName->getValue(true)->getRepObject($props);
                     }
-                    else
-                        if (method_exists($this->$propName, 'getValue') && $this->$propName->getValue() instanceOf ID)
-                        {
-                            $idObj = $this->$propName->getValue();
-                            $objRepresentation->$propName = '#' . $idObj->cluster . ':' . $idObj->position;
-                        }
-                        elseif (method_exists($this->$propName, 'getValue'))
-                        {
-                            $objRepresentation->$propName = $this->$propName->getValue();
-                        }
+                    else{
+                        $idObj = $this->$propName->getValue();
+                        $objRepresentation->$propName = '#' . $idObj->cluster . ':' . $idObj->position;
+                    }
+                }
+                elseif (method_exists($this->$propName, 'getValue'))
+                {
+                    $propType = gettype($this->$propName->getValue());
+                    $propObj = $this->$propName->getValue();
+                    if($propType == 'object' && method_exists($propObj, 'getRepObject')){
+                        $objRepresentation->$propName = $this->$propName->getValue()->getRepObject($props);
+                    }
+                    else if($propType == 'object' && !method_exists($propObj, 'getRepObject')){
+                        $objRepresentation->$propName = json_decode(json_encode($this->$propName->getValue()));
+                    }
+                    else{
+                        $objRepresentation->$propName = $this->$propName->getValue();
+                    }
+                }
             }
             else
             {
