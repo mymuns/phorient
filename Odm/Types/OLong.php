@@ -18,15 +18,15 @@ use BiberLtd\Bundle\Phorient\Odm\Exceptions\InvalidValueException;
 
 class OLong extends OInteger{
 
-	/** @var float $value */
-	protected $value;
+    /** @var float $value */
+    protected $value;
 
-	/**
-	 * @param float $value
-	 *
-	 * @throws \BiberLtd\Bundle\Phorient\Odm\Exceptions\InvalidValueException
-	 */
-	public function __construct($value = null){
-		parent::__construct($value);
-	}
+    /**
+     * @param float $value
+     *
+     * @throws \BiberLtd\Bundle\Phorient\Odm\Exceptions\InvalidValueException
+     */
+    public function __construct($value = null){
+        parent::__construct($value);
+    }
 }

@@ -19,52 +19,52 @@ use PhpOrient\Protocols\Binary\Data\ID as ID;
 
 class OLinkSet extends OrientCollection{
 
-	/** @var array $value */
-	protected $value;
+    /** @var array $value */
+    protected $value;
 
-	/**
-	 * @param array $value
-	 *
-	 * @throws \BiberLtd\Bundle\Phorient\Odm\Exceptions\InvalidValueException
-	 */
-	public function __construct(array $value = []){
-		parent::__construct('OLinkSet', $value);
-	}
+    /**
+     * @param array $value
+     *
+     * @throws \BiberLtd\Bundle\Phorient\Odm\Exceptions\InvalidValueException
+     */
+    public function __construct(array $value = []){
+        parent::__construct('OLinkSet', $value);
+    }
 
-	/**
-	 * @return array
-	 */
-	public function getValue(){
-		return $this->value;
-	}
+    /**
+     * @return array
+     */
+    public function getValue($embedded = false){
+        return $this->value;
+    }
 
-	/**
-	 * @param array $value
-	 *
-	 * @return $this
-	 * @throws \BiberLtd\Bundle\Phorient\Odm\Exceptions\InvalidValueException
-	 */
-	public function setValue($value){
-		if($this->validateValue($value)){
-			$this->value = $value;
-		}
-		return $this;
-	}
-	/*
-	 * @param mixed $value
-	 *
-	 * @return bool
-	 * @throws \BiberLtd\Bundle\Phorient\Odm\Exceptions\InvalidValueException
-	 */
-	public function validateValue($value){
-		if(!is_array($value)){
-			throw new InvalidValueException($this);
-		}
-		foreach($value as $key => $item){
-			if(!$item instanceof ID || !is_string($key)){
-				throw new InvalidValueException($this);
-			}
-		}
-		return true;
-	}
+    /**
+     * @param array $value
+     *
+     * @return $this
+     * @throws \BiberLtd\Bundle\Phorient\Odm\Exceptions\InvalidValueException
+     */
+    public function setValue($value){
+        if($this->validateValue($value)){
+            $this->value = $value;
+        }
+        return $this;
+    }
+    /*
+     * @param mixed $value
+     *
+     * @return bool
+     * @throws \BiberLtd\Bundle\Phorient\Odm\Exceptions\InvalidValueException
+     */
+    public function validateValue($value){
+        if(!is_array($value)){
+            throw new InvalidValueException($this);
+        }
+        foreach($value as $key => $item){
+            if(!$item instanceof ID || !is_string($key)){
+                throw new InvalidValueException($this);
+            }
+        }
+        return true;
+    }
 }
