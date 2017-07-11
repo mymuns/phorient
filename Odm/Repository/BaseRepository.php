@@ -12,6 +12,7 @@
  *
  * Contact support@bodevoffice.com for support requests.
  */
+
 namespace BiberLtd\Bundle\Phorient\Odm\Repository;
 
 use BiberLtd\Bundle\Phorient\Odm\Entity\BaseClass;
@@ -25,16 +26,17 @@ use BiberLtd\Bundle\Phorient\Services\PhpOrient;
 use PhpOrient\Protocols\Binary\Data\ID;
 use PhpOrient\Protocols\Binary\Data\Record;
 
-abstract class BaseRepository implements RepositoryInterface {
-	protected $oService;
-	protected $class;
-	protected $controller;
-	private $fetchPlan = false;
+abstract class BaseRepository implements RepositoryInterface
+{
+    protected $oService;
+    protected $class;
+    protected $controller;
+    private $fetchPlan = false;
     private $cm;
 
 
-
-    public function __construct(ClassManager $cm){
+    public function __construct(ClassManager $cm)
+    {
         $this->cm = $cm;
         $this->oService = $cm->getConnection($cm->currentDb);
     }
@@ -45,16 +47,16 @@ abstract class BaseRepository implements RepositoryInterface {
      *
      * @return \BiberLtd\Bundle\Phorient\Odm\Responses\RepositoryResponse
      */
-    public final function insert(array $collection, bool $batch = false){
+    public final function insert(array $collection, bool $batch = false)
+    {
         $resultSet = [];
-        if($batch){
+        if($batch) {
             $query = $this->prepareBatchInsertQuery($collection);
             $insertedRecords = $this->oService->command($query);
             $resultSet = $collection;
-        }
-        else{
+        } else {
 
-            foreach($collection as $anEntity){
+            foreach($collection as $anEntity) {
                 /**
                  * @var BaseClass $anEntity
                  */
@@ -77,21 +79,23 @@ abstract class BaseRepository implements RepositoryInterface {
      *
      * @return array
      */
-    public function update(array $collection){
+    public function update(array $collection)
+    {
         $resultSet = [];
-        foreach($collection as $anEntity){
+        foreach($collection as $anEntity) {
             /**
              * @var BaseClass $anEntity
              */
-            if(!$anEntity->isModified()){
+            if(!$anEntity->isModified()) {
                 continue;
             }
             $query = $this->prepareUpdateQuery($anEntity);
             $result = $this->oService->command($query);
-            if($result instanceof Record){
+            if($result instanceof Record) {
                 $resultSet[] = $anEntity;
             }
         }
+
         return new RepositoryResponse($resultSet);
     }
 
@@ -102,44 +106,50 @@ abstract class BaseRepository implements RepositoryInterface {
      *
      * @return mixed
      */
-    public function query($query, $limit = 20, $fetchPlan = '*:0'){
+    public function query($query, $limit = 20, $fetchPlan = '*:0')
+    {
 
         $resultSet = $this->oService->query($query, $limit, $fetchPlan);
+
         return new RepositoryResponse($resultSet);
     }
 
-    public function queryAsync($query, $fetchPlan = '*:0'){
+    public function queryAsync($query, $fetchPlan = '*:0')
+    {
 
         $return = new Record();
-        $myFunction=function(Record $record) use ($return){
-            $return=$record;
+        $myFunction = function(Record $record) use ($return) {
+            $return = $record;
         };
-        $resultSet =$this->oService->queryAsync( $query, [ 'fetch_plan' => $fetchPlan, '_callback' => $myFunction ]);
+        $resultSet = $this->oService->queryAsync($query, [ 'fetch_plan' => $fetchPlan, '_callback' => $myFunction ]);
 
         return new RepositoryResponse($return);
     }
 
-    public function setFetchPlan($fetchString='*:0')
+    public function setFetchPlan($fetchString = '*:0')
     {
         $this->fetchPlan = $fetchString;
     }
+
     /**
      * @param array $collection
      *
      * @return array
      */
-    public function delete(array $collection){
+    public function delete(array $collection)
+    {
         $resultSet = [];
-        foreach($collection as $anEntity){
+        foreach($collection as $anEntity) {
             /**
              * @var BaseClass $anEntity
              */
-            $query = 'DELETE FROM '.$this->class.' WHERE @rid = '.$anEntity->getRid('string');
+            $query = 'DELETE FROM ' . $this->class . ' WHERE @rid = ' . $anEntity->getRid('string');
             $result = (bool) $this->oService->command($query);
-            if($result){
+            if($result) {
                 $resultSet[] = $anEntity;
             }
         }
+
         return new RepositoryResponse($resultSet);
     }
 
@@ -148,344 +158,348 @@ abstract class BaseRepository implements RepositoryInterface {
      *
      * @return string
      */
-    private function prepareBatchInsertQuery(array $collection){
+    private function prepareBatchInsertQuery(array $collection)
+    {
         $props = $collection[0]->getProps();
-        $query = 'INSERT INTO '.$this->class.' ';
+        $query = 'INSERT INTO ' . $this->class . ' ';
         $propStr = '';
         $valueCollectionStr = '';
 
-		foreach($props as $aProperty){
-			$propName = $aProperty->getName();
-			$propStr .= $propName.', ';
-		}
-		$propStr = ' ('.rtrim(', ', $propStr).') ';
-		foreach($collection as $entity){
-			$valuesStr = '';
-			foreach($props as $aProperty){
-				$propName = $aProperty->getName();
-				$get = 'get'.ucfirst($propName);
-				$value = $entity->$get();
-				if($propName == 'rid'){
-					continue;
-				}
-				if(is_null($value) || empty($value)){
-					continue;
-				}
-				$colDef = $entity->getColumnDefinition($propName);
-				switch(strtolower($colDef->type)){
-					case 'obinary':
-						/**
-						 * @todo to be implemented
-						 */
-						break;
-					case 'oboolean':
-						$valuesStr .= $entity->$get().', ';
-						break;
-					case 'odate':
-					case 'odatetime':
-						$dateStr = $entity->$get()->format('Y-m-d H:i:s');
-						$valuesStr .= '"'.$dateStr.'", ';
-						break;
-					case 'odecimal':
-					case 'ofloat':
-					case 'ointeger':
-					case 'oshort':
-					case 'olong':
-						$valuesStr .= $entity->$get().', ';
-						break;
-					case 'oembedded':
-					case 'oembeddedlist':
-					case 'oembeddedmap':
-					case 'oembeddedmap':
-						$valuesStr .= json_encode($entity->$get()).', ';
-						break;
-					case 'olink':
-						$valuesStr .= '"'.$entity->$get()->getRid('string').'", ';
-						break;
-					case 'olinkbag':
-					case 'olinklist':
-					case 'olinkmap':
-					case 'olinkset':
-						/**
-						 * @todo to be implemented
-						 */
-						break;
-					case 'orecordid':
-						$valuesStr .= '"'.$entity->$get().'", ';
-						break;
-					case 'ostring':
-						$valuesStr .= '"'.$entity->$get().'", ';
-						break;
-				}
-			}
-			$valueCollectionStr .= ' ('.rtrim($valuesStr, ', ').'), ';
-		}
-		$valueCollectionStr =  rtrim(', ', $valueCollectionStr);
+        foreach($props as $aProperty) {
+            $propName = $aProperty->getName();
+            $propStr .= $propName . ', ';
+        }
+        $propStr = ' (' . rtrim(', ', $propStr) . ') ';
+        foreach($collection as $entity) {
+            $valuesStr = '';
+            foreach($props as $aProperty) {
+                $propName = $aProperty->getName();
+                $get = 'get' . ucfirst($propName);
+                $value = $entity->$get();
+                if($propName == 'rid') {
+                    continue;
+                }
+                if(is_null($value) || empty($value)) {
+                    continue;
+                }
+                $colDef = $entity->getColumnDefinition($propName);
+                switch(strtolower($colDef->type)) {
+                    case 'obinary':
+                        /**
+                         * @todo to be implemented
+                         */
+                        break;
+                    case 'oboolean':
+                        $valuesStr .= $entity->$get() . ', ';
+                        break;
+                    case 'odate':
+                    case 'odatetime':
+                        $dateStr = $entity->$get()->format('Y-m-d H:i:s');
+                        $valuesStr .= '"' . $dateStr . '", ';
+                        break;
+                    case 'odecimal':
+                    case 'ofloat':
+                    case 'ointeger':
+                    case 'oshort':
+                    case 'olong':
+                        $valuesStr .= $entity->$get() . ', ';
+                        break;
+                    case 'oembedded':
+                    case 'oembeddedlist':
+                    case 'oembeddedmap':
+                    case 'oembeddedmap':
+                        $valuesStr .= json_encode($entity->$get()) . ', ';
+                        break;
+                    case 'olink':
+                        $valuesStr .= '"' . $entity->$get()->getRid('string') . '", ';
+                        break;
+                    case 'olinkbag':
+                    case 'olinklist':
+                    case 'olinkmap':
+                    case 'olinkset':
+                        /**
+                         * @todo to be implemented
+                         */
+                        break;
+                    case 'orecordid':
+                        $valuesStr .= '"' . $entity->$get() . '", ';
+                        break;
+                    case 'ostring':
+                        $valuesStr .= '"' . $entity->$get() . '", ';
+                        break;
+                }
+            }
+            $valueCollectionStr .= ' (' . rtrim($valuesStr, ', ') . '), ';
+        }
+        $valueCollectionStr = rtrim(', ', $valueCollectionStr);
 
-		$query .= '('.$propStr.') VALUES '.$valueCollectionStr;
-		return $query;
-	}
-	/**
-	 * @param $entity
-	 *
-	 * @return string
-	 */
-	private function prepareInsertQuery($entity){
-		$props = $entity->getProps();
-		$query = 'INSERT INTO '.$this->class.' ';
-		$propStr = '';
-		$valuesStr = '';
-		foreach ($props as $aProperty){
-			$propName = $aProperty->getName();
-			$get = 'get'.ucfirst($propName);
+        $query .= '(' . $propStr . ') VALUES ' . $valueCollectionStr;
+
+        return $query;
+    }
+
+    /**
+     * @param $entity
+     *
+     * @return string
+     */
+    private function prepareInsertQuery($entity)
+    {
+        $props = $entity->getProps();
+        $query = 'INSERT INTO ' . $this->class . ' ';
+        $propStr = '';
+        $valuesStr = '';
+        foreach($props as $aProperty) {
+            $propName = $aProperty->getName();
+            $get = 'get' . ucfirst($propName);
             //$get = $propName;
 
 
-			if($propName == 'rid'){
-				continue;
-			}
-            $value = $entity->$get();
-			if(is_null($value) || empty($value)){
-				continue;
-			}
-            if($value instanceof BaseType)
-            {
-                if(is_array($value->getValue()) && count($value->getValue())==0)
+            if($propName == 'rid') {
                 continue;
             }
+            $value = $entity->$get();
+            if(is_null($value) || empty($value)) {
+                continue;
+            }
+            if($value instanceof BaseType) {
+                if(is_array($value->getValue()) && count($value->getValue()) == 0) continue;
+            }
 
-			$propStr .= $propName.', ';
-			$colDef = $entity->getColumnDefinition($propName);
-			switch(strtolower($colDef->type)){
-				case 'obinary':
-					/**
-					 * @todo to be implemented
-					 */
-					break;
-				case 'oboolean':
-					$valuesStr .= $entity->$get().', ';
-					break;
-				case 'odate':
-				case 'odatetime':
-					$dateStr = $entity->$get()->format('Y-m-d H:i:s');
-					$valuesStr .= '"'.$dateStr.'", ';
-					break;
-				case 'odecimal':
-				case 'ofloat':
-				case 'ointeger':
-				case 'oshort':
-				case 'olong':
-					$valuesStr .= $entity->$get().', ';
-					break;
-				case 'oembedded':
-				case 'oembeddedlist':
-				case 'oembeddedmap':
-				case 'oembeddedmap':
-					$valuesStr .= json_encode($entity->$get()).', ';
-					break;
-				case 'olink':
-				    if($entity->$get() instanceof BaseClass)
-					$valuesStr .= '"'.$entity->$get()->getRid('string').'", ';
-					break;
-				case 'olinkbag':
-				case 'olinklist':
-				case 'olinkmap':
-				case 'olinkset':
-                    $rids="";
-				    if(is_array($entity->$get()))
-                    {
-                        $rids .="[";
-                        foreach($entity->$get() as $linkedobj)
-                        {
-                            if($linkedobj instanceof BaseClass)
-                            {
+            $propStr .= $propName . ', ';
+            $colDef = $entity->getColumnDefinition($propName);
+            switch(strtolower($colDef->type)) {
+                case 'obinary':
+                    /**
+                     * @todo to be implemented
+                     */
+                    break;
+                case 'oboolean':
+                    $valuesStr .= $entity->$get() . ', ';
+                    break;
+                case 'odate':
+                case 'odatetime':
+                    $dateStr = $entity->$get()->format('Y-m-d H:i:s');
+                    $valuesStr .= '"' . $dateStr . '", ';
+                    break;
+                case 'odecimal':
+                case 'ofloat':
+                case 'ointeger':
+                case 'oshort':
+                case 'olong':
+                    $valuesStr .= $entity->$get() . ', ';
+                    break;
+                case 'oembedded':
+                case 'oembeddedlist':
+                case 'oembeddedmap':
+                case 'oembeddedmap':
+                    $valuesStr .= json_encode($entity->$get()) . ', ';
+                    break;
+                case 'olink':
+                    if($entity->$get() instanceof BaseClass) $valuesStr .= '"' . $entity->$get()->getRid('string') . '", ';
+                    break;
+                case 'olinkbag':
+                case 'olinklist':
+                case 'olinkmap':
+                case 'olinkset':
+                    $rids = "";
+                    if(is_array($entity->$get())) {
+                        $rids .= "[";
+                        foreach($entity->$get() as $linkedobj) {
+                            if($linkedobj instanceof BaseClass) {
                                 $id = $linkedobj->rid->getValue();
-                                $rids .= ($rids!="[" ? ", " : "") . '#'.$id->cluster.':'.$id->position;
+                                $rids .= ($rids != "[" ? ", " : "") . '#' . $id->cluster . ':' . $id->position;
                             }
                         }
-                        $rids .="]";
+                        $rids .= "]";
                     }
 
-                    $valuesStr .= $rids.', ';
-					/**
-					 * @todo to be implemented
-					 */
-					break;
-				case 'orecordid':
-					$valuesStr .= '"'.$entity->$get().'", ';
-					break;
-				case 'ostring':
-					$valuesStr .= '"'.$entity->$get().'", ';
-					break;
-			}
-		}
-		$propStr = rtrim($propStr, ', ');
-		$valuesStr = rtrim($valuesStr, ', ');
-		$query .= '('.$propStr.') VALUES ('.$valuesStr.')';
-		return $query;
-	}
+                    $valuesStr .= $rids . ', ';
+                    /**
+                     * @todo to be implemented
+                     */
+                    break;
+                case 'orecordid':
+                    $valuesStr .= '"' . $entity->$get() . '", ';
+                    break;
+                case 'ostring':
+                    $valuesStr .= '"' . $entity->$get() . '", ';
+                    break;
+            }
+        }
+        $propStr = rtrim($propStr, ', ');
+        $valuesStr = rtrim($valuesStr, ', ');
+        $query .= '(' . $propStr . ') VALUES (' . $valuesStr . ')';
 
-	/**
-	 * @param $entity
-	 *
-	 * @return string
-	 */
-	private function prepareUpdateQuery($entity){
-		$props = $entity->getProps();
-		$query = 'UPDATE '.$this->class.' SET ';
-		$propStr = '';
-		foreach ($props as $aProperty){
-			$propName = $aProperty->getName();
-			$get = 'get'.ucfirst($propName);
-			$value = $entity->$get();
-			if($propName == 'rid'){
-				continue;
-			}
-			if(is_null($value) || empty($value)){
-				continue;
-			}
-			$propStr .= $propName.' = ';
-			$colDef = $entity->getColumnDefinition($propName);
-			$valuesStr = '';
-			switch(strtolower($colDef->type)){
-				case 'obinary':
-					/**
-					 * @todo to be implemented
-					 */
-					break;
-				case 'oboolean':
-					$valuesStr .= $entity->$get();
-					break;
-				case 'odate':
-				case 'odatetime':
-					$dateStr = $entity->$get()->format('Y-m-d H:i:s');
-					$valuesStr .= '"'.$dateStr.'"';
-					break;
-				case 'odecimal':
-				case 'ofloat':
-				case 'ointeger':
-				case 'oshort':
-				case 'olong':
-					$valuesStr .= $entity->$get();
-					break;
-				case 'oembedded':
-				case 'oembeddedlist':
-				case 'oembeddedmap':
-				case 'oembeddedmap':
-					$valuesStr .= json_encode($entity->$get());
-					break;
-				case 'olink':
-					$valuesStr .= '"'.$entity->$get()->getRid('string').'"';
-					break;
-				case 'olinkbag':
-				case 'olinklist':
-				case 'olinkmap':
-				case 'olinkset':
-					/**
-					 * @todo to be implemented
-					 */
-					break;
-				case 'orecordid':
-					$valuesStr .= '"'.$entity->$get().'"';
-					break;
-				case 'ostring':
-					$valuesStr .= '"'.$entity->$get().'"';
-					break;
-			}
-			$propStr .= $valuesStr.', ';
-		}
-		$propStr = rtrim($propStr, ', ');
-		$query .= $propStr.' WHERE @rid = '.$entity->getRecordId('string');
-		return $query;
-	}
+        return $query;
+    }
 
-	/**
-	 * @param mixed $rid
-	 *
-	 * @return mixed
-	 * @throws \BiberLtd\Bundle\Phorient\Odm\Exceptions\UniqueRecordExpected
-	 */
-	public function selectByRid($rid, $class=null){
-		if($rid instanceof ID){
-			$rid = $rid;
-		}
-		elseif($rid instanceof ORecordId){
-			$rid = $rid->getValue();
-		}
-		else{
-			$oRid = new ORecordId($rid);
-			$rid = $oRid->getValue();
-		}
-		/**
-		 * @var ID $rid
-		 */
-		$q = 'SELECT FROM '.$this->class.' WHERE @rid = #'.$rid->cluster.':'.$rid->position;
-		$response = $this->query($q, 1);
-		if(count($response->result) > 1){
-			throw new UniqueRecordExpected($class, $rid, 'ORecordId');
-		}
-		if(count($response->result) <= 0){
-			return new RepositoryResponse(false);
-		}
-		if($class!=null)
-        {
+    /**
+     * @param $entity
+     *
+     * @return string
+     */
+    private function prepareUpdateQuery($entity)
+    {
+        $props = $entity->getProps();
+        $query = 'UPDATE ' . $this->class . ' SET ';
+        $propStr = '';
+        foreach($props as $aProperty) {
+            $propName = $aProperty->getName();
+            $get = 'get' . ucfirst($propName);
+            $value = $entity->$get();
+            if($propName == 'rid') {
+                continue;
+            }
+            if(is_null($value) || empty($value)) {
+                continue;
+            }
+            $propStr .= $propName . ' = ';
+            $colDef = $entity->getColumnDefinition($propName);
+            $valuesStr = '';
+            switch(strtolower($colDef->type)) {
+                case 'obinary':
+                    /**
+                     * @todo to be implemented
+                     */
+                    break;
+                case 'oboolean':
+                    $valuesStr .= $entity->$get();
+                    break;
+                case 'odate':
+                case 'odatetime':
+                    $dateStr = $entity->$get()->format('Y-m-d H:i:s');
+                    $valuesStr .= '"' . $dateStr . '"';
+                    break;
+                case 'odecimal':
+                case 'ofloat':
+                case 'ointeger':
+                case 'oshort':
+                case 'olong':
+                    $valuesStr .= $entity->$get();
+                    break;
+                case 'oembedded':
+                case 'oembeddedlist':
+                case 'oembeddedmap':
+                case 'oembeddedmap':
+                    $valuesStr .= json_encode($entity->$get());
+                    break;
+                case 'olink':
+                    if($entity->$get()->getValue() != null) {
+                        $valuesStr .= '"' . $entity->$get()->getRid('string') . '"';
+                    } else {
+                        $valuesStr .= 'NULL';
+                    }
+                    break;
+                case 'olinkbag':
+                case 'olinklist':
+                case 'olinkmap':
+                case 'olinkset':
+                    /**
+                     * @todo to be implemented
+                     */
+                    break;
+                case 'orecordid':
+                    $valuesStr .= '"' . $entity->$get() . '"';
+                    break;
+                case 'ostring':
+                    $valuesStr .= '"' . $entity->$get() . '"';
+                    break;
+            }
+            $propStr .= $valuesStr . ', ';
+        }
+        $propStr = rtrim($propStr, ', ');
+        $query .= $propStr . ' WHERE @rid = ' . $entity->getRecordId('string');
+
+        return $query;
+    }
+
+    /**
+     * @param mixed $rid
+     *
+     * @return mixed
+     * @throws \BiberLtd\Bundle\Phorient\Odm\Exceptions\UniqueRecordExpected
+     */
+    public function selectByRid($rid, $class = null)
+    {
+        if($rid instanceof ID) {
+            $rid = $rid;
+        } elseif($rid instanceof ORecordId) {
+            $rid = $rid->getValue();
+        } else {
+            $oRid = new ORecordId($rid);
+            $rid = $oRid->getValue();
+        }
+        /**
+         * @var ID $rid
+         */
+        $q = 'SELECT FROM ' . $this->class . ' WHERE @rid = #' . $rid->cluster . ':' . $rid->position;
+        $response = $this->query($q, 1);
+        if(count($response->result) > 1) {
+            throw new UniqueRecordExpected($class, $rid, 'ORecordId');
+        }
+        if(count($response->result) <= 0) {
+            return new RepositoryResponse(false);
+        }
+        if($class != null) {
             $collection = [];
 
-            foreach($response->result as $item){
+            foreach($response->result as $item) {
                 $collection[] = new $class($item);
             }
+
             return new RepositoryResponse($collection[0]);
-        }else{
+        } else {
             return new RepositoryResponse($response->result[0]);
         }
 
-	}
+    }
 
-	/**
-	 * @param array       $rids
-	 * @param string|null $class
-	 *
-	 * @return \BiberLtd\Bundle\Phorient\Odm\Responses\RepositoryResponse
-	 * @throws \BiberLtd\Bundle\Phorient\Odm\Exceptions\ClassMustBeSetException
-	 */
-	public function listByRids(array $rids, string $class = null){
-		if(count($rids) < 1){
-			return new RepositoryResponse([]);
-		}
-		$class = $class ?? ($this->entityClass ?? null);
-		if(is_null($class) || empty($class)){
-			throw new ClassMustBeSetException();
-		}
-		$convertdRids = [];
-		foreach($rids as $rid){
-			if($rid instanceof ID){
-				$rid = $rid;
-			}
-			elseif($rid instanceof ORecordId){
-				$rid = $rid->getValue();
-			}
-			else{
-				$oRid = new ORecordId($rid);
-				$rid = $oRid->getValue();
-			}
-			$convertdRids[] = '#'.$rid->cluster.':'.$rid->position;
-		}
-		$ridStr = implode(',', $convertdRids);
-		unset($rids, $convertdRids);
+    /**
+     * @param array       $rids
+     * @param string|null $class
+     *
+     * @return \BiberLtd\Bundle\Phorient\Odm\Responses\RepositoryResponse
+     * @throws \BiberLtd\Bundle\Phorient\Odm\Exceptions\ClassMustBeSetException
+     */
+    public function listByRids(array $rids, string $class = null)
+    {
+        if(count($rids) < 1) {
+            return new RepositoryResponse([]);
+        }
+        $class = $class ?? ($this->entityClass ?? null);
+        if(is_null($class) || empty($class)) {
+            throw new ClassMustBeSetException();
+        }
+        $convertdRids = [];
+        foreach($rids as $rid) {
+            if($rid instanceof ID) {
+                $rid = $rid;
+            } elseif($rid instanceof ORecordId) {
+                $rid = $rid->getValue();
+            } else {
+                $oRid = new ORecordId($rid);
+                $rid = $oRid->getValue();
+            }
+            $convertdRids[] = '#' . $rid->cluster . ':' . $rid->position;
+        }
+        $ridStr = implode(',', $convertdRids);
+        unset($rids, $convertdRids);
 
-		$q = 'SELECT FROM '.$this->class.' WHERE @rid IN ['.$ridStr.']';
-		$response = $this->query($q, 1);
-		if(count($response->result) <= 0){
-			return new RepositoryResponse([]);
-		}
-		$collection = [];
-		foreach($response->result as $item){
-			$collection[] = new $class($this->controller, $item);
-		}
-		return new RepositoryResponse($collection);
-	}
+        $q = 'SELECT FROM ' . $this->class . ' WHERE @rid IN [' . $ridStr . ']';
+        $response = $this->query($q, 1);
+        if(count($response->result) <= 0) {
+            return new RepositoryResponse([]);
+        }
+        $collection = [];
+        foreach($response->result as $item) {
+            $collection[] = new $class($this->controller, $item);
+        }
 
-	public function setClass($class)
+        return new RepositoryResponse($collection);
+    }
+
+    public function setClass($class)
     {
         $this->class = $class;
     }
