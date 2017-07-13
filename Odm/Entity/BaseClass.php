@@ -27,7 +27,6 @@ use Doctrine\Common\Annotations\AnnotationReader as AnnotationReader;
 use BiberLtd\Bundle\Phorient\Odm\Repository\BaseRepository;
 
 class BaseClass
-
 {
     /**
      * @ORM\Column(type="ORecordId")
@@ -38,23 +37,56 @@ class BaseClass
      * @var bool
      */
     protected $modified = false;
-    /** @var  \DateTime */
+
+    /**
+     * @var \DateTime
+     */
     protected $dateAdded;
-    /** @var  \DateTime */
+
+    /**
+     * @var \DateTime
+     */
     protected $dateUpdated;
-    /** @var  \DateTime|null */
+
+    /**
+     * @var \DateTime|null
+     */
     protected $dateRemoved = null;
-    /** @var  string $version md5 Hash of object serialization */
+
+    /**
+     * @var string $version md5 Hash of object serialization
+     */
     protected $versionHash;
-    /** @var array Version history, the first element is always the original version */
+
+    /**
+     * @var array Version history, the first element is always the original version
+     */
     protected $versionHistory = [];
-    /** @var \PhpOrient\Protocols\Binary\Data\Record Stores the original Orient Record */
+
+    /**
+     * @var null|ORecord Stores the original Orient Record
+     */
     protected $record;
-    /** @var array Holds definition of all public properties of a class for serialization purposes. */
+
+    /**
+     * @var array Holds definition of all public properties of a class for serialization purposes.
+     */
     private $props = [];
-    /** @var array Holds annotation definitions. */
+
+    /**
+     * @var array Holds annotation definitions.
+     */
     private $propAnnotations = [];
+
+    /**
+     * @var ClassManager
+     */
     protected $cm;
+
+    /**
+     * @var string
+     */
+    protected $typePath = 'BiberLtd\\Bundle\\Phorient\\Odm\\Types\\';
 
     /**
      * BaseClass constructor.
@@ -67,6 +99,7 @@ class BaseClass
     {
         $this->cm = $cm;
         $this->prepareProps()->preparePropAnnotations();
+
         if(is_null($record)) {
             $this->dateAdded = new \DateTime('now', new \DateTimeZone($timezone));
             $this->record = $record;
@@ -75,7 +108,6 @@ class BaseClass
         } else {
             $this->convertRecordToOdmObject($record);
         }
-        // $this->versionHistory[] = $this->output('json');
 
         $this->versionHash = md5(array_pop($this->versionHistory));
     }
@@ -102,6 +134,7 @@ class BaseClass
     final public function setVersionHistory()
     {
         $this->versionHistory[] = $this->output('json');
+
         if($this->versionHash !== $this->getUpdatedVersionHash() && !$this->modified) {
             $this->modified = true;
         } else {
@@ -130,15 +163,14 @@ class BaseClass
     }
 
     /**
+     * @param string
+     *
      * @return ID
      */
     public function getRid($as = 'object')
     {
         if($as == 'string') {
             if(is_null($this->rid->getValue())) return null;
-            /**
-             * @var ID $id
-             */
             $id = $this->rid->getValue();
 
             return '#' . $id->cluster . ':' . $id->position;
@@ -154,7 +186,7 @@ class BaseClass
      *
      * @return $this
      */
-    public function setRecordId($rid)
+    public function setRecordId(ID $rid)
     {
         return $this->setRid($rid);
     }
@@ -164,7 +196,7 @@ class BaseClass
      *
      * @return $this
      */
-    public function setRid($rid)
+    public function setRid(ID $rid)
     {
         $this->rid = new ORecordId($rid);
 
@@ -172,12 +204,11 @@ class BaseClass
     }
 
     /**
-     * @param \PhpOrient\Protocols\Binary\Data\Record $record
+     * @param ORecord $record
      */
     public function convertRecordToOdmObject(ORecord $record)
     {
         $this->rid = new ORecordId($record->getRid());
-
         $recordData = $record->getOData();
 
         foreach($this->propAnnotations as $propName => $propAnnotations) {
@@ -188,7 +219,7 @@ class BaseClass
             foreach($propAnnotations as $propAnnotation) {
                 if($propAnnotation instanceof Column) {
                     $set = 'set' . ucfirst($propName);
-                    if(isset($recordData[$propName])) {
+                    if(array_key_exists($propName, $recordData)) {
                         $this->$set($recordData[$propName]);
                     } else {
                         $this->$set(null);
@@ -210,14 +241,16 @@ class BaseClass
     {
         $prefix = substr($name, 0, 3);
         $property = strtolower($name[3]) . substr($name, 4);
+
         if(!property_exists(get_class($this), $property)) {
             $property = strtolower(preg_replace('/([^A-Z])([A-Z])/', "$1_$2", $property));
         }
 
         switch($prefix) {
             case 'get':
-                $colType = 'BiberLtd\\Bundle\\Phorient\\Odm\\Types\\' . $this->getColumnType($property);
+                $colType = $this->typePath . $this->getColumnType($property);
                 $onerow = false;
+
                 switch($this->getColumnType($property)) {
                     case 'OLink':
                         $onerow = true;
@@ -240,21 +273,19 @@ class BaseClass
 
             case 'set':
 
-                // Always set the value if a parameter is passed
-
                 if(count($arguments) != 1) {
                     throw new \Exception("Setter for $name requires exactly one parameter.");
                 }
 
-                $colType = 'BiberLtd\\Bundle\\Phorient\\Odm\\Types\\' . $this->getColumnType($property);
+                $colType = $this->typePath . $this->getColumnType($property);
                 $onerow = false;
+
                 switch($this->getColumnType($property)) {
                     case 'OLink':
                         $onerow = true;
                     case 'OLinkList':
                     case 'OLinkSet':
                     case 'OLinkMap':
-
                         if($this->ifHasLinkedClass($property)) {
                             $linkedObj = $this->getNameSpace() . $this->getColumnOptions($property) ['class'];
                             $repoClass = $this->createRepository($this->getColumnOptions($property) ['class']);
@@ -272,16 +303,15 @@ class BaseClass
                                         $obj[] = $item;
                                     }
                                 } else {
-                                    // $obj[] = new $linkedObj($this->cm);
                                     $obj[] = null;
                                 }
                             }
-                            // $this->$property = $onerow ? $obj[0] : $obj;
                             $this->$property = $onerow ? new $colType($obj[0]) : new $colType($obj);
                         } else {
                             if(isset($arguments[0])) {
                                 $data = $onerow ? [ $arguments[0] ] : $arguments[0];
                                 $returnData = [];
+
                                 foreach($data as $item) {
                                     if(!is_null($item) && !is_string($item)) {
                                         if(!($item instanceof ID)) throw new InvalidRecordIdString();
@@ -298,9 +328,7 @@ class BaseClass
                                 $this->$property = $onerow ? new $colType($returnData[0]) : new $colType($returnData);
                             }
                         }
-
                         break;
-
                     default:
                         $this->$property = new $colType($arguments[0]);
                         break;
@@ -326,6 +354,11 @@ class BaseClass
         return $this->cm->getRepository($entity);
     }
 
+    /**
+     * @param $property
+     *
+     * @return bool
+     */
     private function ifHasLinkedClass($property)
     {
         $options = $this->getColumnOptions($property);
@@ -335,6 +368,9 @@ class BaseClass
         return true;
     }
 
+    /**
+     * @return string
+     */
     private function getNameSpace()
     {
         $reflectionClass = new \ReflectionClass($this);
@@ -378,6 +414,7 @@ class BaseClass
         $aPropertyReflection = new \ReflectionProperty(get_class($this), $propertyName);
         $annoReader = new AnnotationReader();
         $propAnnotations = $annoReader->getPropertyAnnotations($aPropertyReflection);
+
         foreach($propAnnotations as $aPropAnnotation) {
             if($aPropAnnotation instanceof Column) {
                 return $aPropAnnotation;
@@ -444,16 +481,19 @@ class BaseClass
         } else {
             $dtFormat = 'd.m.Y H:i:s';
         }
+
         foreach($this->props as $aProperty) {
             $propName = $aProperty->getName();
+            $propOptions = $this->getColumnOptions($propName);
+
             if(!is_null($props) && !in_array($propName, $props)) {
                 continue;
             }
-            $propOptions = $this->getColumnOptions($propName);
+
             if(!is_null($this->$propName)) {
                 if(method_exists($this->$propName, 'getValue') && is_array($this->$propName->getValue())) {
-                    // TODO: Embedded = TRUE ile ilgili çalışmalara devam edilecek.
                     $collection = [];
+
                     foreach($this->$propName->getValue() as $anItem) {
                         if($anItem instanceOf ID) {
                             $collection[] = '#' . $anItem->cluster . ':' . $anItem->position;
@@ -480,12 +520,15 @@ class BaseClass
                 } elseif(method_exists($this->$propName, 'getValue')) {
                     $propType = gettype($this->$propName->getValue());
                     $propObj = $this->$propName->getValue();
+
                     if($propType == 'object' && method_exists($propObj, 'getRepObject')) {
                         $objRepresentation->$propName = $this->$propName->getValue()->getRepObject($props);
                     } else if($propType == 'object' && !method_exists($propObj, 'getRepObject')) {
                         $objRepresentation->$propName = json_decode(json_encode($this->$propName->getValue()));
                     } else {
-                        $objRepresentation->$propName = $this->$propName->getValue();
+                        $propType = $this->getColumnType($propName);
+                        $value = in_array($propType, [ 'OEmbeddedList', 'OLinkList', 'OEmbeddedSet' ]) && ($this->$propName->getValue() == null || empty($this->$propName->getValue())) ? [] : $this->$propName->getValue();
+                        $objRepresentation->$propName = $value;
                     }
                 }
             } else {
@@ -527,15 +570,15 @@ class BaseClass
     }
 
     /**
+     * @param string|null $nsRoot
+     *
      * @return $this
      */
-    private function setDefaults()
+    private function setDefaults(string $nsRoot = null)
     {
-        $nsRoot = 'BiberLtd\\Bundle\\Phorient\\Odm\\Types\\';
+        $nsRoot = $nsRoot ?? $this->typePath;
+
         foreach($this->props as $aProperty) {
-            /**
-             * @var \ReflectionProperty $aProperty
-             */
             $propName = $aProperty->getName();
             $colType = $this->getColumnType($propName);
             $class = $nsRoot . $colType;
@@ -545,5 +588,3 @@ class BaseClass
         return $this;
     }
 }
-
-
