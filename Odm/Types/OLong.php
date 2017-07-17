@@ -16,7 +16,8 @@ namespace BiberLtd\Bundle\Phorient\Odm\Types;
 
 use BiberLtd\Bundle\Phorient\Odm\Exceptions\InvalidValueException;
 
-class OLong extends OInteger{
+class OLong extends OInteger
+{
 
     /** @var float $value */
     protected $value;
@@ -26,7 +27,8 @@ class OLong extends OInteger{
      *
      * @throws \BiberLtd\Bundle\Phorient\Odm\Exceptions\InvalidValueException
      */
-    public function __construct($value = null){
+    public function __construct($value = null)
+    {
         parent::__construct($value);
     }
 }

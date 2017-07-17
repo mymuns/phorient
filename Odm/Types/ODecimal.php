@@ -33,7 +33,7 @@ class ODecimal extends BaseType{
 	/**
 	 * @return bool
 	 */
-	public function getValue(){
+	public function getValue($embedded = false){
 		return $this->value;
 	}
 

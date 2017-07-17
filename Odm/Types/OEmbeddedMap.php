@@ -31,7 +31,7 @@ class OEmbeddedMap extends BaseType{
 	/**
 	 * @return array
 	 */
-	public function getValue(){
+	public function getValue($embedded = false){
 		return $this->value;
 	}
 

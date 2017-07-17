@@ -33,7 +33,7 @@ class OEmbeddedSet extends OrientCollection{
 	/**
 	 * @return array
 	 */
-	public function getValue(){
+	public function getValue($embedded = false){
 		return $this->value;
 	}
 

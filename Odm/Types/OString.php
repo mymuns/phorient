@@ -16,7 +16,8 @@ namespace BiberLtd\Bundle\Phorient\Odm\Types;
 
 use BiberLtd\Bundle\Phorient\Odm\Exceptions\InvalidValueException;
 
-class OString extends BaseType{
+class OString extends BaseType
+{
 
     /** @var string $value */
     protected $value;
@@ -26,14 +27,16 @@ class OString extends BaseType{
      *
      * @throws \BiberLtd\Bundle\Phorient\Odm\Exceptions\InvalidValueException
      */
-    public function __construct($value=null){
+    public function __construct($value = null)
+    {
         parent::__construct('OString', $value);
     }
 
     /**
      * @return string
      */
-    public function getValue($embedded = false){
+    public function getValue($embedded = false)
+    {
         return $this->value;
     }
 
@@ -43,22 +46,27 @@ class OString extends BaseType{
      * @return $this
      * @throws \BiberLtd\Bundle\Phorient\Odm\Exceptions\InvalidValueException
      */
-    public function setValue($value){
-        if($this->validateValue($value)){
+    public function setValue($value)
+    {
+        if($this->validateValue($value)) {
             $this->value = $value;
         }
+
         return $this;
     }
+
     /*
      * @param mixed $value
      *
      * @return bool
      * @throws \BiberLtd\Bundle\Phorient\Odm\Exceptions\InvalidValueException
      */
-    public function validateValue($value){
-        if(!is_string($value) && !is_null($value)){
+    public function validateValue($value)
+    {
+        if(!is_string($value) && !is_null($value)) {
             throw new InvalidValueException($this);
         }
+
         return true;
     }
 

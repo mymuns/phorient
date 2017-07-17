@@ -17,7 +17,8 @@ namespace BiberLtd\Bundle\Phorient\Odm\Types;
 use BiberLtd\Bundle\Phorient\Odm\Exceptions\InvalidValueException;
 use PhpOrient\Protocols\Binary\Data\ID as ID;
 
-class OLinkMap extends OrientCollection{
+class OLinkMap extends OrientCollection
+{
 
     /** @var array $value */
     protected $value;
@@ -27,14 +28,16 @@ class OLinkMap extends OrientCollection{
      *
      * @throws \BiberLtd\Bundle\Phorient\Odm\Exceptions\InvalidValueException
      */
-    public function __construct(array $value = []){
+    public function __construct(array $value = [])
+    {
         parent::__construct('OLinkMap', $value);
     }
 
     /**
      * @return array
      */
-    public function getValue($embedded = false){
+    public function getValue($embedded = false)
+    {
         return $this->value;
     }
 
@@ -44,27 +47,32 @@ class OLinkMap extends OrientCollection{
      * @return $this
      * @throws \BiberLtd\Bundle\Phorient\Odm\Exceptions\InvalidValueException
      */
-    public function setValue($value){
-        if($this->validateValue($value)){
+    public function setValue($value)
+    {
+        if($this->validateValue($value)) {
             $this->value = $value;
         }
+
         return $this;
     }
+
     /*
      * @param mixed $value
      *
      * @return bool
      * @throws \BiberLtd\Bundle\Phorient\Odm\Exceptions\InvalidValueException
      */
-    public function validateValue($value){
-        if(!is_array($value)){
+    public function validateValue($value)
+    {
+        if(!is_array($value)) {
             throw new InvalidValueException($this);
         }
-        foreach($value as $key => $item){
-            if(!$item instanceof ID || !is_string($key)){
+        foreach($value as $key => $item) {
+            if(!$item instanceof ID || !is_string($key)) {
                 throw new InvalidValueException($this);
             }
         }
+
         return true;
     }
 }

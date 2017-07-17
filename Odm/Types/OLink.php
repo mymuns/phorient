@@ -38,11 +38,12 @@ class OLink extends BaseType
      */
     public function getValue($embedded = false)
     {
-        if (!$embedded) {
-            if (is_object($this->value) && method_exists($this->value, 'getRid')) {
+        if(!$embedded) {
+            if(is_object($this->value) && method_exists($this->value, 'getRid')) {
                 return $this->value->getRid();
             }
         }
+
         return $this->value;
     }
 
@@ -55,24 +56,24 @@ class OLink extends BaseType
      */
     public function setValue($value)
     {
-        if (!$this->validateValue($value)) {
+        if(!$this->validateValue($value)) {
             throw new InvalidValueException('ORecordId');
         }
-        if ($value instanceof ID) {
+        if($value instanceof ID) {
             $this->value = $value;
-        } else if (is_array($value) && count($value) === 2) {
+        } else if(is_array($value) && count($value) === 2) {
             $this->value = new ID($value[0], $value[1]);
-        } else if (is_string($value)) {
-            if (strpos($value, '#') !== 0) {
+        } else if(is_string($value)) {
+            if(strpos($value, '#') !== 0) {
                 throw new InvalidRecordIdString();
             }
             $value = str_replace('#', '', $value);
             $value = explode(':', $value);
-            if (count($value) !== 2) {
+            if(count($value) !== 2) {
                 throw new InvalidRecordIdString();
             }
             $this->value = new ID($value[0], $value[1]);
-        } else if (is_object($value) && method_exists($value, 'getRid')) {
+        } else if(is_object($value) && method_exists($value, 'getRid')) {
             $this->value = $value;
         }
 
@@ -88,31 +89,32 @@ class OLink extends BaseType
      */
     public function validateValue($value)
     {
-        if ($value == null) {
+        if($value == null) {
             return true;
         }
-        if ($value instanceof ID) {
+        if($value instanceof ID) {
             return true;
-        } else if (is_array($value) && count($value) === 2) {
+        } else if(is_array($value) && count($value) === 2) {
             return true;
         } else {
-            if (is_string($value)) {
-                if (strpos($value, '#') !== 0) {
+            if(is_string($value)) {
+                if(strpos($value, '#') !== 0) {
                     return false;
                 }
                 $value = str_replace('#', '', $value);
                 $value = explode(':', $value);
-                if (count($value) !== 2) {
+                if(count($value) !== 2) {
                     return false;
                 }
+
                 return true;
-            }
-            elseif (is_object($value)) {
-                if (method_exists($value, 'getRid')) {
+            } elseif(is_object($value)) {
+                if(method_exists($value, 'getRid')) {
                     return true;
                 }
             }
         }
+
         return false;
     }
 

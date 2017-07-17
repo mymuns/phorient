@@ -33,7 +33,7 @@ class OEmbeddedList extends OrientCollection{
     /**
      * @return array
      */
-    public function getValue(){
+    public function getValue($embedded = false){
         return $this->value;
     }
 

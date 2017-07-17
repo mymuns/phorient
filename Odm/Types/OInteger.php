@@ -33,7 +33,7 @@ class OInteger extends BaseType{
 	/**
 	 * @return int
 	 */
-	public function getValue(){
+	public function getValue($embedded = false){
 		return $this->value;
 	}
 

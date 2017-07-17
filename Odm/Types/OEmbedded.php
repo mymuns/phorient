@@ -34,7 +34,7 @@ class OEmbedded extends BaseType{
 	/**
 	 * @return string
 	 */
-	public function getValue(){
+	public function getValue($embedded = false){
 		return $this->value;
 	}
 

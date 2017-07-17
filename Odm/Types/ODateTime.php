@@ -33,7 +33,7 @@ class ODateTime extends BaseType{
 	/**
 	 * @return \DateTime
 	 */
-	public function getValue(){
+	public function getValue($embedded = false){
 		return $this->value;
 	}
 

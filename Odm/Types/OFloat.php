@@ -33,7 +33,7 @@ class OFloat extends BaseType{
 	/**
 	 * @return float
 	 */
-	public function getValue(){
+	public function getValue($embedded = false){
 		return $this->value;
 	}
 
