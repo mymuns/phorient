@@ -381,12 +381,14 @@ abstract class BaseRepository implements RepositoryInterface
                 case 'oembedded':
                 case 'oembeddedlist':
                 case 'oembeddedmap':
-                case 'oembeddedmap':
+                case 'oembeddedset':
                     $valuesStr .= json_encode($entity->$get());
+
                     break;
                 case 'olink':
                     if($entity->$get()->getValue() != null) {
-                        $valuesStr .= '"' . $entity->$get()->getRid('string') . '"';
+                        $rid = $entity->$get()->getValue();
+                        $valuesStr .= '#' .$rid->cluster.':'. $rid->position.'' ;
                     } else {
                         $valuesStr .= 'NULL';
                     }

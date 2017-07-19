@@ -42,8 +42,7 @@ class ClassManager
     {
         if($dbInfo==null)
         {
-            $dbInfo =  $this->container->get('service_container')->getParameter('orientdb');
-            unset($container);
+            $dbInfo =  $this->config;
             if(!isset($dbInfo['database'][$dbName])){
                 throw new \Exception("Please check your parameters.yml for Orient Database connection");
             }

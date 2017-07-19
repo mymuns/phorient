@@ -59,10 +59,17 @@ class OEmbeddedSet extends OrientCollection{
 		if(!is_array($value)){
 			throw new InvalidValueException($this);
 		}
+		$unique=[];
 		foreach($value as $key => $item){
-			if(!is_object($item) || !is_string($key)){
+			if(!is_int($item)){
 				throw new InvalidValueException($this);
 			}
+			if(array_key_exists($item,$unique))
+            {
+                throw new InvalidValueException($this);
+            }else{
+                $unique[$item] = true;
+            }
 		}
 		return true;
 	}

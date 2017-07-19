@@ -66,7 +66,7 @@ class OEmbeddedList extends OrientCollection{
             if(is_array($item)){
                 $item = (object) $item;
             }
-            if(!is_object($item)){
+            if(!is_object($item) && !is_string($item)){
                 throw new InvalidValueException($this);
             }
         }
