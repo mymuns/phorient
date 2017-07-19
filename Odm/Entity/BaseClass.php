@@ -25,6 +25,7 @@ use PhpOrient\Protocols\Binary\Data\ID as ID;
 use PhpOrient\Protocols\Binary\Data\Record as ORecord;
 use Doctrine\Common\Annotations\AnnotationReader as AnnotationReader;
 use BiberLtd\Bundle\Phorient\Odm\Repository\BaseRepository;
+use PhpOrient\Protocols\Binary\Data\Record;
 
 class BaseClass
 {
@@ -328,6 +329,38 @@ class BaseClass
                                 $this->$property = $onerow ? new $colType($returnData[0]) : new $colType($returnData);
                             }
                         }
+                        break;
+                    case 'OEmbeddedMap':
+                        $data = $arguments[0];
+                        $data = is_array($data) ? json_decode(json_encode($data)) : [$data];
+                        $newdata=[];
+                        foreach($data as $index => $item)
+                        {
+                            $item = is_array($item) ? json_decode(json_encode($item)) : $item;
+                            if(is_object($item))
+                            {
+                                $newdata[$index] = (property_exists($item,'oData')) ? ($item instanceof Record ? $item->getOdata() : $item->oData) : $item;
+                            }else{
+                                $newdata[$index] = $item;
+                            }
+
+                        }
+                        $this->$property = new $colType($newdata);
+                        break;
+                    case 'OEmbeddedList':
+                        if(is_array($arguments[0]))
+                        {
+                            $newdata=[];
+                            foreach($arguments[0] as $item)
+                            {
+                                $item = is_array($item) ? json_decode(json_encode($item)) : $item;
+                                $newdata[] = (property_exists($item,'oData')) ? ($item instanceof Record ? $item->getOdata() : $item->oData) : $item;
+                            }
+                            $this->$property = new $colType($newdata);
+                        }else{
+                            $this->$property = new $colType([]);
+                        }
+
                         break;
                     default:
                         $this->$property = new $colType($arguments[0]);

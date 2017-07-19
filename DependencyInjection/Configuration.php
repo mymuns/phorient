@@ -2,6 +2,7 @@
 
 namespace BiberLtd\Bundle\Phorient\DependencyInjection;
 
+use BiberLtd\Bundle\Phorient\Services\CMConfig;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 
@@ -12,13 +13,20 @@ use Symfony\Component\Config\Definition\ConfigurationInterface;
  */
 class Configuration implements ConfigurationInterface
 {
+
+    private $cf;
+
+    public function  __construct(CMConfig $config)
+    {
+        $this->cf = $config;
+    }
     /**
      * {@inheritDoc}
      */
     public function getConfigTreeBuilder()
     {
         $treeBuilder = new TreeBuilder();
-        $rootNode = $treeBuilder->root('biberltd_php_orient');
+        $rootNode = $treeBuilder->root('phOrient');
 
         // Here you should define the parameters that are allowed to
         // configure your bundle. See the documentation linked above for
