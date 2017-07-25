@@ -206,7 +206,7 @@ abstract class BaseRepository implements RepositoryInterface
                         break;
                     case 'oembedded':
                     case 'oembeddedlist':
-                    case 'oembeddedmap':
+                    case 'oembeddedset':
                     case 'oembeddedmap':
                         $valuesStr .= json_encode($entity->$get()) . ', ';
                         break;
@@ -386,8 +386,8 @@ abstract class BaseRepository implements RepositoryInterface
 
                     break;
                 case 'olink':
-                    if($entity->$get()->getValue() != null) {
-                        $rid = $entity->$get()->getValue();
+                    if(is_object($entity->$get())) {
+                        $rid = $entity->$get() instanceof ID ? $entity->$get() : $entity->$get()->getValue();
                         $valuesStr .= '#' .$rid->cluster.':'. $rid->position.'' ;
                     } else {
                         $valuesStr .= 'NULL';
@@ -397,6 +397,18 @@ abstract class BaseRepository implements RepositoryInterface
                 case 'olinklist':
                 case 'olinkmap':
                 case 'olinkset':
+                    $linklist = [];
+                    if($entity->$get()->getValue() != null)
+                    {
+                        foreach($entity->$get()->getValue() as $index => $item)
+                        {
+                            $linklist[$index] = $item->getRid();
+                        }
+
+                        $valuesStr .= '"' . implode(',', $linklist) . '"';
+                    }else{
+                        $valuesStr .= null;
+                    }
                     /**
                      * @todo to be implemented
                      */

@@ -261,11 +261,10 @@ class BaseClass
                         if($this->ifHasLinkedClass($property)) {
                             return $this->$property;
                         } else {
-                            return $this->$property->getValue();
+                            return (is_object($this->$property) ? $this->$property->getValue() : null);
                         }
 
                         break;
-
                     default:
                         return $this->ifHasLinkedClass($property) ? $this->$property : (is_object($this->$property) ? $this->$property->getValue() : null);
                 }
@@ -397,7 +396,8 @@ class BaseClass
         $options = $this->getColumnOptions($property);
         if(!is_array($options)) return false;
         if(!array_key_exists('class', $options)) return false;
-
+        if(!array_key_exists('embedded', $options)) return false;
+        if(!$options['embedded']) return false;
         return true;
     }
 
