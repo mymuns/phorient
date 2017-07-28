@@ -211,7 +211,15 @@ abstract class BaseRepository implements RepositoryInterface
                         $valuesStr .= json_encode($entity->$get()) . ', ';
                         break;
                     case 'olink':
-                        $valuesStr .= '"' . $entity->$get()->getRid('string') . '", ';
+                        if($entity->$get() instanceof BaseClass)
+                            $valuesStr .= '"' . $entity->$get()->getRid('string') . '"';
+                        elseif($entity->$get() instanceof ID) {
+                            $id = $entity->$get();
+                            $rid = '#' . $id->cluster . ':' . $id->position;
+                            $valuesStr .= '"' . $rid . '", ';
+                        }else{
+                            $valuesStr .= 'NULL, ';
+                        }
                         break;
                     case 'olinkbag':
                     case 'olinklist':
@@ -296,7 +304,15 @@ abstract class BaseRepository implements RepositoryInterface
                     $valuesStr .= json_encode($entity->$get()) . ', ';
                     break;
                 case 'olink':
-                    if($entity->$get() instanceof BaseClass) $valuesStr .= '"' . $entity->$get()->getRid('string') . '", ';
+                    if($entity->$get() instanceof BaseClass)
+                        $valuesStr .= '"' . $entity->$get()->getRid('string') . '"';
+                    elseif($entity->$get() instanceof ID) {
+                        $id = $entity->$get();
+                        $rid = '#' . $id->cluster . ':' . $id->position;
+                        $valuesStr .= '"' . $rid . '", ';
+                    }else{
+                        $valuesStr .= 'NULL, ';
+                    }
                     break;
                 case 'olinkbag':
                 case 'olinklist':
@@ -386,11 +402,14 @@ abstract class BaseRepository implements RepositoryInterface
 
                     break;
                 case 'olink':
-                    if(is_object($entity->$get())) {
-                        $rid = $entity->$get() instanceof ID ? $entity->$get() : $entity->$get()->getValue();
-                        $valuesStr .= '#' .$rid->cluster.':'. $rid->position.'' ;
-                    } else {
-                        $valuesStr .= 'NULL';
+                    if($entity->$get() instanceof BaseClass)
+                        $valuesStr .= '"' . $entity->$get()->getRid('string') . '"';
+                    elseif($entity->$get() instanceof ID) {
+                        $id = $entity->$get();
+                        $rid = '#' . $id->cluster . ':' . $id->position;
+                        $valuesStr .= '"' . $rid . '", ';
+                    }else{
+                        $valuesStr .= 'NULL, ';
                     }
                     break;
                 case 'olinkbag':
@@ -434,8 +453,15 @@ abstract class BaseRepository implements RepositoryInterface
      * @return mixed
      * @throws \BiberLtd\Bundle\Phorient\Odm\Exceptions\UniqueRecordExpected
      */
+    /**
+     * @param mixed $rid
+     *
+     * @return mixed
+     * @throws \BiberLtd\Bundle\Phorient\Odm\Exceptions\UniqueRecordExpected
+     */
     public function selectByRid($rid, $class = null)
     {
+        $class = $class ?? $this->class;
         if($rid instanceof ID) {
             $rid = $rid;
         } elseif($rid instanceof ORecordId) {
@@ -447,19 +473,20 @@ abstract class BaseRepository implements RepositoryInterface
         /**
          * @var ID $rid
          */
-        $q = 'SELECT FROM ' . $this->class . ' WHERE @rid = #' . $rid->cluster . ':' . $rid->position;
+        $q = 'SELECT FROM ' . $class . ' WHERE @rid = #' . $rid->cluster . ':' . $rid->position;
         $response = $this->query($q, 1);
         if(count($response->result) > 1) {
             throw new UniqueRecordExpected($class, $rid, 'ORecordId');
         }
         if(count($response->result) <= 0) {
-            return new RepositoryResponse(false);
+            return new RepositoryResponse(false, 404);
         }
         if($class != null) {
             $collection = [];
 
             foreach($response->result as $item) {
-                $collection[] = new $class($item);
+                $linkedObj = $this->getClassManager()->getEntityPath('AppBundle') . $class;
+                $collection[] = new $linkedObj($this->getClassManager(), $item);
             }
 
             return new RepositoryResponse($collection[0]);

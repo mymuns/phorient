@@ -314,6 +314,10 @@ class BaseClass
 
                                 foreach($data as $item) {
                                     if(!is_null($item) && !is_string($item)) {
+                                        if($item instanceof BaseClass)
+                                        {
+                                            $item = $item->getRid();
+                                        }
                                         if(!($item instanceof ID)) throw new InvalidRecordIdString();
                                     }
 
