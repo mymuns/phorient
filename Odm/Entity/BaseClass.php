@@ -296,7 +296,11 @@ class BaseClass
                                 if($item != null) {
                                     if($item instanceof ID) {
                                         $response = $repoClass->selectByRid($item);
-                                        if($response->code == 200) {
+                                        if($response->result instanceof BaseClass) {
+                                            $obj[] = $response->result;
+                                        }
+
+                                        if($response->result instanceof ORecord) {
                                             $obj[] = new $linkedObj($this->cm, $response->result);
                                         }
                                     } else {
@@ -569,7 +573,14 @@ class BaseClass
                     }
                 }
             } else {
-                $objRepresentation->$propName = null;
+                $propType = $this->getColumnType($propName);
+                if(in_array($propType, [ 'OEmbeddedList', 'OLinkList', 'OEmbeddedSet' ])) {
+                    $value = [];
+                }else{
+                    $value = null;
+                }
+
+                $objRepresentation->$propName = $value;
             }
         }
 

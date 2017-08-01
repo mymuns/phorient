@@ -413,24 +413,20 @@ abstract class BaseRepository implements RepositoryInterface
                     }
                     break;
                 case 'olinkbag':
-                case 'olinklist':
                 case 'olinkmap':
                 case 'olinkset':
+                case 'olinklist':
                     $linklist = [];
-                    if($entity->$get()->getValue() != null)
+                    if(is_object($entity->$get()) && method_exists($entity->$get(),'getValue') && $entity->$get()->getValue() != null)
                     {
                         foreach($entity->$get()->getValue() as $index => $item)
                         {
-                            $linklist[$index] = $item->getRid();
+                            $linklist[$index] = $item->getRid('string');
                         }
-
                         $valuesStr .= '"' . implode(',', $linklist) . '"';
                     }else{
-                        $valuesStr .= null;
+                        $valuesStr .= '[]';
                     }
-                    /**
-                     * @todo to be implemented
-                     */
                     break;
                 case 'orecordid':
                     $valuesStr .= '"' . $entity->$get() . '"';
