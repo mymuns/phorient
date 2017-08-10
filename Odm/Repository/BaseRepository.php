@@ -305,7 +305,7 @@ abstract class BaseRepository implements RepositoryInterface
                     break;
                 case 'olink':
                     if($entity->$get() instanceof BaseClass)
-                        $valuesStr .= '"' . $entity->$get()->getRid('string') . '"';
+                        $valuesStr .= '"' . $entity->$get()->getRid('string') . '",';
                     elseif($entity->$get() instanceof ID) {
                         $id = $entity->$get();
                         $rid = '#' . $id->cluster . ':' . $id->position;
@@ -318,22 +318,18 @@ abstract class BaseRepository implements RepositoryInterface
                 case 'olinklist':
                 case 'olinkmap':
                 case 'olinkset':
-                    $rids = "";
-                    if(is_array($entity->$get())) {
-                        $rids .= "[";
-                        foreach($entity->$get() as $linkedobj) {
-                            if($linkedobj instanceof BaseClass) {
-                                $id = $linkedobj->rid->getValue();
-                                $rids .= ($rids != "[" ? ", " : "") . '#' . $id->cluster . ':' . $id->position;
-                            }
+                    $linklist = [];
+                    if(is_array($entity->$get()))
+                    {
+                        foreach($entity->$get() as $index => $item)
+                        {
+                            $linklist[$index] = $item instanceof BaseClass ? $item->getRid('string') : $item;
                         }
-                        $rids .= "]";
+                        $valuesStr .= '[' . implode(',', $linklist) . ']';
+                    }else{
+                        $valuesStr .= '[]';
                     }
-
-                    $valuesStr .= $rids . ', ';
-                    /**
-                     * @todo to be implemented
-                     */
+                    $valuesStr .= ', ';
                     break;
                 case 'orecordid':
                     $valuesStr .= '"' . $entity->$get() . '", ';
@@ -407,9 +403,9 @@ abstract class BaseRepository implements RepositoryInterface
                     elseif($entity->$get() instanceof ID) {
                         $id = $entity->$get();
                         $rid = '#' . $id->cluster . ':' . $id->position;
-                        $valuesStr .= '"' . $rid . '", ';
+                        $valuesStr .= '"' . $rid . '"';
                     }else{
-                        $valuesStr .= 'NULL, ';
+                        $valuesStr .= 'NULL';
                     }
                     break;
                 case 'olinkbag':

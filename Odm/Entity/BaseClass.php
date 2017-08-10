@@ -16,6 +16,7 @@
 namespace BiberLtd\Bundle\Phorient\Odm\Entity;
 
 use BiberLtd\Bundle\Phorient\Odm\Exceptions\InvalidRecordIdString;
+use BiberLtd\Bundle\Phorient\Odm\Types\BaseType;
 use BiberLtd\Bundle\Phorient\Odm\Types\ORecordId;
 use BiberLtd\Bundle\Phorient\Services\ClassManager;
 use Doctrine\Common\Annotations\AnnotationException;
@@ -259,14 +260,14 @@ class BaseClass
                     case 'OLinkSet':
                     case 'OLinkMap':
                         if($this->ifHasLinkedClass($property)) {
-                            return $this->$property;
+                            return $this->$property instanceof BaseType ? $this->$property->getValue() : $this->$property;
                         } else {
-                            return (is_object($this->$property) ? $this->$property->getValue() : null);
+                            return $this->$property instanceof BaseType ? $this->$property->getValue() : null;
                         }
 
                         break;
                     default:
-                        return $this->ifHasLinkedClass($property) ? $this->$property : (is_object($this->$property) ? $this->$property->getValue() : null);
+                        return $this->ifHasLinkedClass($property) ? ($this->$property) : (is_object($this->$property) ? $this->$property->getValue() : null);
                 }
 
                 break;
