@@ -370,6 +370,11 @@ class BaseClass
                         }
 
                         break;
+                    case 'ODateTime':
+                        if(!is_null($arguments[0])) {
+                            $this->$property = new $colType($arguments[0] instanceof \DateTime ? $arguments[0] : \DateTime::createFromFormat('Y-m-d H:i:s',date('Y-m-d H:i:s',strtotime($arguments[0]))));
+                        }
+                        break;
                     default:
                         $this->$property = new $colType($arguments[0]);
                         break;
