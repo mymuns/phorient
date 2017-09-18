@@ -363,11 +363,11 @@ abstract class BaseRepository implements RepositoryInterface
             if($propName == 'rid') {
                 continue;
             }
-            if(is_null($value) || empty($value)) {
-                continue;
-            }
             $propStr .= $propName . ' = ';
             $colDef = $entity->getColumnDefinition($propName);
+            if(is_null($value) || empty($value) || (key_exists('readOnly', $colDef->options) && $colDef->options['readOnly'] == true)) {
+                continue;
+            }
             $valuesStr = '';
             switch(strtolower($colDef->type)) {
                 case 'obinary':
