@@ -106,11 +106,11 @@ abstract class BaseRepository implements RepositoryInterface
      *
      * @return mixed
      */
-    public function query($query, $limit = 20, $fetchPlan = '*:0')
+    public function query($query, $limit = 20, $fetchPlan = '*:-1')
     {
 
-        $resultSet = $this->oService->query($query, $limit, $fetchPlan);
-
+        //$resultSet = $this->oService->query($query, $limit, $fetchPlan);
+        $resultSet = $this->queryAsync($query, '*:-1');
         return new RepositoryResponse($resultSet);
     }
 
@@ -120,10 +120,10 @@ abstract class BaseRepository implements RepositoryInterface
         $return = new Record();
         $myFunction = function(Record $record) use ($return) {
             $return = $record;
+
         };
         $resultSet = $this->oService->queryAsync($query, [ 'fetch_plan' => $fetchPlan, '_callback' => $myFunction ]);
-
-        return new RepositoryResponse($return);
+        return $resultSet;
     }
 
     public function setFetchPlan($fetchString = '*:0')
