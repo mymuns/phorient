@@ -243,6 +243,7 @@ class BaseClass
     {
         $prefix = substr($name, 0, 3);
         $property = strtolower($name[3]) . substr($name, 4);
+        $columnType = $this->getColumnType($property);
 
         if(!property_exists(get_class($this), $property)) {
             $property = strtolower(preg_replace('/([^A-Z])([A-Z])/', "$1_$2", $property));
@@ -250,7 +251,7 @@ class BaseClass
 
         switch($prefix) {
             case 'get':
-                $colType = $this->typePath . $this->getColumnType($property);
+                $colType = $this->typePath . $columnType;
                 $onerow = false;
 
                 /* switch($this->getColumnType($property)) {
@@ -277,10 +278,20 @@ class BaseClass
                     throw new \Exception("Setter for $name requires exactly one parameter.");
                 }
 
-                $colType = $this->typePath . $this->getColumnType($property);
+                $colType = $this->typePath . $columnType;
                 $onerow = false;
 
-                $this->$property = $this->getColumnType($property)==='OLink' ? $arguments[0] : new $colType($arguments[0]) ;
+                if ($columnType === 'OLink') {
+                    if (is_null($arguments[0]) || empty($arguments[0]) || is_array($arguments[0])) {
+                        $this->$property = $arguments[0];
+                    }else{
+                        $this->$property = new $colType($arguments[0]);
+                    }
+                }else{
+                    $this->$property = new $colType($arguments[0]);
+                }
+
+
                 /*
                 switch($this->getColumnType($property)) {
                     case 'OLink':
