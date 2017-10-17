@@ -27,7 +27,7 @@ use PhpOrient\Protocols\Binary\Data\Record as ORecord;
 use Doctrine\Common\Annotations\AnnotationReader as AnnotationReader;
 use BiberLtd\Bundle\Phorient\Odm\Repository\BaseRepository;
 use PhpOrient\Protocols\Binary\Data\Record;
-
+use JMS\Serializer\Annotation as JMS;
 class BaseClass
 {
     /**
@@ -37,11 +37,13 @@ class BaseClass
 
     /**
      * @var bool
+     * @JMS\Exclude()
      */
     protected $modified = false;
 
     /**
      * @var \DateTime
+     * @JMS\Exclude()
      */
     protected $dateAdded;
 
@@ -52,41 +54,49 @@ class BaseClass
 
     /**
      * @var \DateTime|null
+     * @JMS\Exclude()
      */
     protected $dateRemoved = null;
 
     /**
      * @var string $version md5 Hash of object serialization
+     * @JMS\Exclude()
      */
     protected $versionHash;
 
     /**
      * @var array Version history, the first element is always the original version
+     * @JMS\Exclude()
      */
     protected $versionHistory = [];
 
     /**
      * @var null|ORecord Stores the original Orient Record
+     * @JMS\Exclude()
      */
     protected $record;
 
     /**
      * @var array Holds definition of all public properties of a class for serialization purposes.
+     * @JMS\Exclude()
      */
     private $props = [];
 
     /**
      * @var array Holds annotation definitions.
+     * @JMS\Exclude()
      */
     private $propAnnotations = [];
 
     /**
      * @var ClassManager
+     * @JMS\Exclude()
      */
     protected $cm;
 
     /**
      * @var string
+     * @JMS\Exclude()
      */
     protected $typePath = 'BiberLtd\\Bundle\\Phorient\\Odm\\Types\\';
 
@@ -282,8 +292,13 @@ class BaseClass
                 $onerow = false;
 
                 if ($columnType === 'OLink') {
-                    if (is_null($arguments[0]) || empty($arguments[0]) || is_array($arguments[0])) {
-                        $this->$property = $arguments[0];
+                    if ($arguments[0] instanceof Record) {
+                        if($this->ifHasLinkedClass($property)) {
+                            $linkedObj = $this->getNameSpace() . $this->getColumnOptions($property) ['class'];
+                            $this->$property = new $linkedObj($this->cm, $arguments[0]);
+                        }else{
+                            $this->$property = $arguments[0]->getOData();
+                        }
                     }else{
                         $this->$property = new $colType($arguments[0]);
                     }
@@ -473,6 +488,7 @@ class BaseClass
      */
     public function getColumnDefinition($propertyName)
     {
+        if(!$this instanceof BaseClass) throw new AnnotationException();
         $aPropertyReflection = new \ReflectionProperty(get_class($this), $propertyName);
         $annoReader = new AnnotationReader();
         $propAnnotations = $annoReader->getPropertyAnnotations($aPropertyReflection);
@@ -537,6 +553,8 @@ class BaseClass
      */
     public function getRepObject(array $props = null)
     {
+
+        //$props = $props ?? $this->props;
         $objRepresentation = new \stdClass();
         if(isset($this->controller->dateTimeFormat)) {
             $dtFormat = $this->controller->dateTimeFormat;
@@ -553,45 +571,49 @@ class BaseClass
             }
 
             if(!is_null($this->$propName)) {
-                if(method_exists($this->$propName, 'getValue') && is_array($this->$propName->getValue())) {
-                    $collection = [];
 
-                    foreach($this->$propName->getValue() as $anItem) {
-                        if($anItem instanceOf ID) {
-                            $collection[] = '#' . $anItem->cluster . ':' . $anItem->position;
-                        } else if($anItem instanceOf \DateTime) {
-                            $collection[] = $anItem->format($dtFormat);
-                        } else if(is_object($anItem) && method_exists($anItem, 'getValue')) {
-                            $collection[] = $anItem->getValue();
+                if (method_exists($this->$propName, 'getValue')) {
+
+                    if (is_array($this->$propName->getValue())) {
+                        $collection = [];
+
+                        foreach ($this->$propName->getValue() as $anItem) {
+                            if ($anItem instanceOf ID) {
+                                $collection[] = '#' . $anItem->cluster . ':' . $anItem->position;
+                            } else if ($anItem instanceOf \DateTime) {
+                                $collection[] = $anItem->format($dtFormat);
+                            } else if (is_object($anItem) && method_exists($anItem, 'getValue')) {
+                                $collection[] = $anItem->getValue();
+                            } else {
+                                $collection[] = $anItem;
+                            }
+                        }
+                    } else if ($this->$propName->getValue() instanceOf \DateTime) {
+                        $objRepresentation->$propName = $this->$propName->getValue()->format($dtFormat);
+                    } else if ($this->$propName->getValue() instanceOf ID) {
+                        if ($this->getColumnType($propName) == 'OLink' && isset($propOptions['embedded']) && $propOptions['embedded'] == true) {
+                            $objRepresentation->$propName = $this->$propName->getValue(true)->getRepObject($props);
                         } else {
-                            $collection[] = $anItem;
+                            $idObj = $this->$propName->getValue();
+                            $objRepresentation->$propName = '#' . $idObj->cluster . ':' . $idObj->position;
+                        }
+                    } else {
+                        $propType = gettype($this->$propName->getValue());
+                        $propObj = $this->$propName->getValue();
+
+                        if ($propType == 'object' && method_exists($propObj, 'getRepObject')) {
+                            $objRepresentation->$propName = $this->$propName->getValue()->getRepObject($props);
+                        } else if ($propType == 'object' && !method_exists($propObj, 'getRepObject')) {
+                            $objRepresentation->$propName = json_decode(json_encode($this->$propName->getValue()));
+                        } else {
+                            $propType = $this->getColumnType($propName);
+                            $value = in_array($propType, ['OEmbeddedList', 'OLinkList', 'OEmbeddedSet']) && ($this->$propName->getValue() == null || empty($this->$propName->getValue())) ? [] : $this->$propName->getValue();
+                            $objRepresentation->$propName = $value;
                         }
                     }
-
-                    $objRepresentation->$propName = $collection;
-                } else if(method_exists($this->$propName, 'getValue') && $this->$propName->getValue() instanceOf \DateTime) {
-
-                    $objRepresentation->$propName = $this->$propName->getValue()->format($dtFormat);
-                } else if(method_exists($this->$propName, 'getValue') && $this->$propName->getValue() instanceOf ID) {
-                    if($this->getColumnType($propName) == 'OLink' && isset($propOptions['embedded']) && $propOptions['embedded'] == true) {
-                        $objRepresentation->$propName = $this->$propName->getValue(true)->getRepObject($props);
-                    } else {
-                        $idObj = $this->$propName->getValue();
-                        $objRepresentation->$propName = '#' . $idObj->cluster . ':' . $idObj->position;
-                    }
-                } elseif(method_exists($this->$propName, 'getValue')) {
-                    $propType = gettype($this->$propName->getValue());
-                    $propObj = $this->$propName->getValue();
-
-                    if($propType == 'object' && method_exists($propObj, 'getRepObject')) {
-                        $objRepresentation->$propName = $this->$propName->getValue()->getRepObject($props);
-                    } else if($propType == 'object' && !method_exists($propObj, 'getRepObject')) {
-                        $objRepresentation->$propName = json_decode(json_encode($this->$propName->getValue()));
-                    } else {
-                        $propType = $this->getColumnType($propName);
-                        $value = in_array($propType, [ 'OEmbeddedList', 'OLinkList', 'OEmbeddedSet' ]) && ($this->$propName->getValue() == null || empty($this->$propName->getValue())) ? [] : $this->$propName->getValue();
-                        $objRepresentation->$propName = $value;
-                    }
+                }
+                else{
+                    $objRepresentation->$propName =  $this->$propName->getRepObject();
                 }
             } else {
                 $propType = $this->getColumnType($propName);
@@ -600,6 +622,7 @@ class BaseClass
                 }else{
                     $value = null;
                 }
+
 
                 $objRepresentation->$propName = $value;
             }
