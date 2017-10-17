@@ -11,12 +11,6 @@
             "email": "can.berkol@biberltd.com"
         }
     ],
-    "repositories": [
-        {
-            "type" : "vcs",
-            "url": "https://github.com/biberltd/phporient"
-        }
-    ],
     "require": {
         "biberltd/phporient": "dev-biberltd",
         "symfony/process": "^3.0",
