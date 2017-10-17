@@ -293,15 +293,39 @@ class BaseClass
 
                 if ($columnType === 'OLink') {
                     if ($arguments[0] instanceof Record) {
-                        if($this->ifHasLinkedClass($property)) {
+                        if ($this->ifHasLinkedClass($property)) {
                             $linkedObj = $this->getNameSpace() . $this->getColumnOptions($property) ['class'];
                             $this->$property = new $linkedObj($this->cm, $arguments[0]);
-                        }else{
-                            $this->$property = $arguments[0]->getOData();
+                        } else {
+                            $this->$property = $arguments[0]->getRid();
                         }
-                    }else{
+                    } else {
                         $this->$property = new $colType($arguments[0]);
                     }
+                }elseif ($columnType === 'OLinkList') {
+                    $isRecordObject=false;
+                    if (is_array($arguments[0])) {
+                        $result = [];
+
+                        foreach ($arguments[0] as $argument) {
+                            if ($this->ifHasLinkedClass($property)) {
+                                if ($argument instanceof Record) {
+                                    $isRecordObject=true;
+                                    $linkedObj = $this->getNameSpace() . $this->getColumnOptions($property) ['class'];
+                                    $result[] = new $linkedObj($this->cm, $argument);
+                                }else{
+                                    $result[] = $argument;
+                                }
+                            }else{
+                                if ($argument instanceof Record) {
+                                    $result[] = $argument->getRid();
+                                }else{
+                                    $result[] = $argument;
+                                }
+                            }
+                        }
+                    }
+                    $this->$property = $isRecordObject ? $result : new $colType($result);
                 }else{
                     $this->$property = new $colType($arguments[0]);
                 }
@@ -553,7 +577,6 @@ class BaseClass
      */
     public function getRepObject(array $props = null)
     {
-
         //$props = $props ?? $this->props;
         $objRepresentation = new \stdClass();
         if(isset($this->controller->dateTimeFormat)) {
@@ -587,6 +610,7 @@ class BaseClass
                             } else {
                                 $collection[] = $anItem;
                             }
+                            $objRepresentation->$propName = $collection;
                         }
                     } else if ($this->$propName->getValue() instanceOf \DateTime) {
                         $objRepresentation->$propName = $this->$propName->getValue()->format($dtFormat);
@@ -611,10 +635,47 @@ class BaseClass
                             $objRepresentation->$propName = $value;
                         }
                     }
+
+                }else{
+
+                    switch ($this->getColumnType($propName)) {
+
+                        case 'OLink':
+                            if (isset($propOptions['embedded']) && $propOptions['embedded'] == true) {
+                                $value =  $this->$propName->getRepObject();
+                            }else{
+                                $value =  '#' . $this->$propName->cluster . ':' . $this->$propName->position;
+                            }
+                            break;
+
+                        case 'OLinkList':
+                            $value = [];
+                            if (is_array($this->$propName) && count($this->$propName) > 0) {
+                                foreach ($this->$propName as $propValue) {
+                                    if (isset($propOptions['embedded']) && $propOptions['embedded'] == true) {
+                                        if($propValue instanceof BaseClass)
+                                        {
+                                            $value[] =  $propValue->getRepObject();
+                                        }
+                                    }else{
+                                        if($propValue instanceof ID)
+                                        {
+                                            $value[] =  '#' . $propValue->cluster . ':' . $propValue->position;
+                                        }
+                                    }
+                                }
+                            }
+                            break;
+
+                        default:
+                            $value = $propValue;
+                            break;
+                    }
+
+                    $objRepresentation->$propName = $value;
+
                 }
-                else{
-                    $objRepresentation->$propName =  $this->$propName->getRepObject();
-                }
+
             } else {
                 $propType = $this->getColumnType($propName);
                 if(in_array($propType, [ 'OEmbeddedList', 'OLinkList', 'OEmbeddedSet' ])) {
@@ -622,7 +683,6 @@ class BaseClass
                 }else{
                     $value = null;
                 }
-
 
                 $objRepresentation->$propName = $value;
             }
