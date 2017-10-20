@@ -354,13 +354,15 @@ abstract class BaseRepository implements RepositoryInterface
     private function prepareUpdateQuery($entity)
     {
         $props = $entity->getProps();
+        $updatedProps = $entity->getUpdatedProps();
+        $entity->setVersionHistory();
         $query = 'UPDATE ' . $this->class . ' SET ';
         $propStr = '';
         foreach($props as $aProperty) {
             $propName = $aProperty->getName();
             $get = 'get' . ucfirst($propName);
             $value = $entity->$get();
-            if($propName == 'rid') {
+            if($propName == 'rid' || !in_array($propName, $updatedProps)) {
                 continue;
             }
             $colDef = $entity->getColumnDefinition($propName);
