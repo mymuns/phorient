@@ -67,8 +67,9 @@ class BaseClass
     /**
      * @var array Version history, the first element is always the original version
      * @JMS\Exclude()
+     * @ORM\Column(type="OEmbeddedMap")
      */
-    protected $versionHistory = [];
+    private $versionHistory = [];
 
     /**
      * @var null|ORecord Stores the original Orient Record
@@ -81,6 +82,12 @@ class BaseClass
      * @JMS\Exclude()
      */
     private $props = [];
+
+    /**
+     * @var array Holds definition of all public properties of a class for serialization purposes.
+     * @JMS\Exclude()
+     */
+    private $updatedProps = [];
 
     /**
      * @var array Holds annotation definitions.
@@ -121,7 +128,7 @@ class BaseClass
             $this->convertRecordToOdmObject($record);
         }
 
-        $this->versionHash = md5(array_pop($this->versionHistory));
+        $this->versionHash = md5($this->output('json'));
     }
 
     /**
@@ -129,9 +136,9 @@ class BaseClass
      */
     final public function isModified()
     {
+        $this->getUpdatedVersionHash();
         if($this->getUpdatedVersionHash() === $this->versionHash) {
             $this->modified = false;
-
             return false;
         }
 
@@ -230,17 +237,84 @@ class BaseClass
 
             foreach($propAnnotations as $propAnnotation) {
                 if($propAnnotation instanceof Column) {
-                    $set = 'set' . ucfirst($propName);
                     if(array_key_exists($propName, $recordData)) {
-                        $this->$set($recordData[$propName]);
+                        $this->setProperty($propName,array($recordData[$propName]));
                     } else {
-                        $this->$set(null);
+                        $this->setProperty($propName,array(null));
                     }
                 }
             }
         }
     }
 
+    public function setProperty($property,$arguments)
+    {
+        if(count($arguments) != 1) {
+            throw new \Exception("Setter for {$property} requires exactly one parameter.");
+        }
+
+        $columnType = $this->getColumnType($property);
+        $colType = $this->typePath . $columnType;
+        $onerow = false;
+
+        if ($columnType === 'OLink') {
+            if ($arguments[0] instanceof Record) {
+                if ($this->ifHasLinkedClass($property)) {
+                    $linkedObj = $this->getNameSpace() . $this->getColumnOptions($property) ['class'];
+                    $this->$property = new $linkedObj($this->cm, $arguments[0]);
+                } else {
+                    $this->$property = $arguments[0]->getRid();
+                }
+            } else {
+                $this->$property = new $colType($arguments[0]);
+            }
+        }elseif ($columnType === 'OLinkList') {
+            $isRecordObject = false;
+            if (is_array($arguments[0])) {
+                $result = [];
+
+                foreach ($arguments[0] as $argument) {
+                    if ($this->ifHasLinkedClass($property)) {
+                        if ($argument instanceof Record) {
+                            $isRecordObject = true;
+                            $linkedObj = $this->getNameSpace() . $this->getColumnOptions($property) ['class'];
+                            $result[] = new $linkedObj($this->cm, $argument);
+                        } else {
+                            $result[] = $argument;
+                        }
+                    } else {
+                        if ($argument instanceof Record) {
+                            $result[] = $argument->getRid();
+                        } else {
+                            $result[] = $argument;
+                        }
+                    }
+                }
+            }
+            $this->$property = $isRecordObject ? $result : new $colType($result);
+        }elseif($columnType === 'OEmbeddedList') {
+            if (is_array($arguments[0])) {
+                $newdata = [];
+
+                foreach ($arguments[0] as $item) {
+                    $item = $item instanceof Record ? $item->getOdata() : $item;
+                    $newdata[] = $item;
+                }
+                $newdata = $this->sortArray($newdata);
+
+                $this->$property = new $colType($newdata);
+            } else {
+                $this->$property = new $colType([]);
+            }
+        }elseif ($columnType === 'ODateTime') {
+            if(!is_null($arguments[0])) {
+                $this->$property = new $colType($arguments[0] instanceof \DateTime ? $arguments[0] : \DateTime::createFromFormat('Y-m-d H:i:s', date('Y-m-d H:i:s', strtotime($arguments[0]))));
+            }
+        }else{
+            $this->$property = new $colType($arguments[0]);
+        }
+
+    }
     /**
      * @param $name
      * @param $arguments
@@ -264,72 +338,12 @@ class BaseClass
                 $colType = $this->typePath . $columnType;
                 $onerow = false;
 
-                /* switch($this->getColumnType($property)) {
-                     case 'OLink':
-                         $onerow = true;
-                     case 'OLinkList':
-                     case 'OLinkSet':
-                     case 'OLinkMap':
-                         if($this->ifHasLinkedClass($property)) {
-                             return $this->$property instanceof BaseType ? $this->$property->getValue() : $this->$property;
-                         } else {
-                             return $this->$property instanceof BaseType ? $this->$property->getValue() : null;
-                         }
-
-                         break;
-                     default:
-                         return $this->ifHasLinkedClass($property) ? ($this->$property) : ($this->$property instanceof BaseType ? $this->$property->getValue() : null);
-                 }*/
-                return $this->$property->getValue();
+                return (method_exists($this, 'getValue')) ? $this->$property->getValue() : $this->$property;
                 break;
 
             case 'set':
-                if(count($arguments) != 1) {
-                    throw new \Exception("Setter for $name requires exactly one parameter.");
-                }
-
-                $colType = $this->typePath . $columnType;
-                $onerow = false;
-
-                if ($columnType === 'OLink') {
-                    if ($arguments[0] instanceof Record) {
-                        if ($this->ifHasLinkedClass($property)) {
-                            $linkedObj = $this->getNameSpace() . $this->getColumnOptions($property) ['class'];
-                            $this->$property = new $linkedObj($this->cm, $arguments[0]);
-                        } else {
-                            $this->$property = $arguments[0]->getRid();
-                        }
-                    } else {
-                        $this->$property = new $colType($arguments[0]);
-                    }
-                }elseif ($columnType === 'OLinkList') {
-                    $isRecordObject=false;
-                    if (is_array($arguments[0])) {
-                        $result = [];
-
-                        foreach ($arguments[0] as $argument) {
-                            if ($this->ifHasLinkedClass($property)) {
-                                if ($argument instanceof Record) {
-                                    $isRecordObject=true;
-                                    $linkedObj = $this->getNameSpace() . $this->getColumnOptions($property) ['class'];
-                                    $result[] = new $linkedObj($this->cm, $argument);
-                                }else{
-                                    $result[] = $argument;
-                                }
-                            }else{
-                                if ($argument instanceof Record) {
-                                    $result[] = $argument->getRid();
-                                }else{
-                                    $result[] = $argument;
-                                }
-                            }
-                        }
-                    }
-                    $this->$property = $isRecordObject ? $result : new $colType($result);
-                }else{
-                    $this->$property = new $colType($arguments[0]);
-                }
-
+                $this->checkUpdatedProb(lcfirst(substr($name, 3)),$arguments[0]);
+                $this->setProperty($property,$arguments);
 
                 /*
                 switch($this->getColumnType($property)) {
@@ -444,6 +458,23 @@ class BaseClass
         }
     }
 
+    private function checkUpdatedProb($property,$value)
+    {
+        $oldValue = $this->{'get'.ucfirst($property)}();
+        $oldValue = $oldValue instanceof BaseType ? $oldValue->getValue() : $oldValue;
+        $oldValue = $oldValue instanceof Record ? $oldValue->getOData() : $oldValue;
+        $oldValue = is_object($oldValue) ? $this->toArray($oldValue) : $oldValue;
+        $oldValue = md5(is_array($oldValue) ? json_encode($oldValue) : $oldValue);
+
+        $value = is_object($value) ? $this->toArray($value) : $value;
+        $value = md5(is_array($value) ? json_encode($value) : $value);
+
+        if($oldValue != $value)
+        {
+            $this->updatedProps[] = $property;
+            $this->modified = true;
+        }
+    }
     /**
      * @param $entity
      *
@@ -698,9 +729,46 @@ class BaseClass
      */
     final private function outputToJson(array $props = null)
     {
-        return json_encode($this->getRepObject($props));
+        //return json_encode($this->getRepObject($props));
+        return json_encode($this->toArray());
     }
 
+    public function getToMapProperties($object)
+    {
+        return array_diff_key(get_object_vars($object), array_flip(array(
+            'index', 'parent','modified','versionHash','record','props','cm','typePath','propAnnotations','updatedProps', 'dateAdded', 'dateRemoved', 'versionHistory'
+        )));
+    }
+
+    public function sortArray($array)
+    {
+        if(is_object($array) || is_array($array))
+        {
+            $array = (array) $array;
+            foreach ($array as $index => $value)
+            {
+                $array[$index] = $this->sortArray($value);
+            }
+            ksort($array);
+        }
+        return $array;
+    }
+    public function toArray($object = null)
+    {
+        $object = $object == null ? $object = $this : $object;
+        $array = $object->getToMapProperties($object);
+        array_walk_recursive($array, function (&$value){
+            $value = $value instanceof BaseType ? $value->getValue() : $value;
+            $value = $value instanceof ID ? '#'.$value->cluster.':'.$value->position : $value;
+            if ($value instanceof BaseClass) {
+                $value = $value->toArray();
+            }else{
+                $value = is_object($value) || is_array($value) ? (array) $value : $value;
+            }
+        });
+        $this->sortArray($array);
+        return $array;
+    }
     /**
      * @param array $props
      *
@@ -721,6 +789,10 @@ class BaseClass
         return $this->props;
     }
 
+    final public function getUpdatedProps()
+    {
+        return $this->updatedProps;
+    }
     /**
      * @param string|null $nsRoot
      *
