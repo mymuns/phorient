@@ -354,7 +354,6 @@ class BaseClass
 
                 switch ($this->getColumnType($property)) {
                     case 'ODateTime':
-                        dump($property);die;
                         if (isset($propOptions['embedded']) && $propOptions['embedded'] == true) {
                             $value = $this->$property->setPattern($this->dtFormat)->getValue(true);
                         }
