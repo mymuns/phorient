@@ -21,26 +21,31 @@ class ODateTime extends BaseType{
     /** @var \DateTime $value */
     protected $value;
 
+    protected $pattern = 'Y-m-d\TH:i:s\Z';
     /**
      * @param \DateTime $value
      *
      * @throws \BiberLtd\Bundle\Phorient\Odm\Exceptions\InvalidValueException
      */
-    public function __construct($value = null){
-        parent::__construct('ODateTime', $value);
+    public function __construct($value = null, $embedded = false){
+        parent::__construct('ODateTime', $value, $embedded);
     }
 
     /**
      * @return \DateTime
      */
     public function getValue($embedded = false){
-        if (!$embedded) {
-            return $this->value->format('Y-m-d\TH:i:s\Z');;
+        if (!$embedded && $this->value != null) {
+            return $this->value->format($this->pattern);
         }
-
         return $this->value;
     }
 
+    public function setPattern($format)
+    {
+        $this->pattern = $format;
+        return $this;
+    }
     /**
      * @param $value
      *
@@ -60,7 +65,7 @@ class ODateTime extends BaseType{
      * @throws \BiberLtd\Bundle\Phorient\Odm\Exceptions\InvalidValueException
      */
     public function validateValue($value){
-        if(!$value instanceof \DateTime && $value != null){
+        if($value != null && !$value instanceof \DateTime){
             throw new InvalidValueException($this);
         }
         return true;

@@ -15,6 +15,7 @@
 
 namespace BiberLtd\Bundle\Phorient\Odm\Entity;
 
+use AppBundle\Entity\SaasAcademic\AcademicUnit;
 use BiberLtd\Bundle\Phorient\Odm\Exceptions\InvalidRecordIdString;
 use BiberLtd\Bundle\Phorient\Odm\Types\BaseType;
 use BiberLtd\Bundle\Phorient\Odm\Types\ORecordId;
@@ -102,6 +103,10 @@ class BaseClass
     protected $cm;
 
     /**
+     * @JMS\Exclude()
+     */
+    protected $dtFormat;
+    /**
      * @var string
      * @JMS\Exclude()
      */
@@ -119,6 +124,11 @@ class BaseClass
         $this->cm = $cm;
         $this->prepareProps()->preparePropAnnotations();
 
+        if(isset($this->controller->dateTimeFormat)) {
+            $this->dtFormat = $this->controller->dateTimeFormat;
+        } else {
+            $this->dtFormat = 'd.m.Y H:i:s';
+        }
         if(is_null($record)) {
             $this->dateAdded = new \DateTime('now', new \DateTimeZone($timezone));
             $this->record = $record;
@@ -255,6 +265,8 @@ class BaseClass
 
         $columnType = $this->getColumnType($property);
         $colType = $this->typePath . $columnType;
+        $propOptions = $this->getColumnOptions($property);
+
         $onerow = false;
 
         if ($columnType === 'OLink') {
@@ -308,7 +320,7 @@ class BaseClass
             }
         }elseif ($columnType === 'ODateTime') {
             if(!is_null($arguments[0])) {
-                $this->$property = new $colType($arguments[0] instanceof \DateTime ? $arguments[0] : \DateTime::createFromFormat('Y-m-d H:i:s', date('Y-m-d H:i:s', strtotime($arguments[0]))));
+                $this->$property = new $colType($arguments[0] instanceof \DateTime ? $arguments[0] : \DateTime::createFromFormat('Y-m-d H:i:s', date('Y-m-d H:i:s', strtotime($arguments[0]))), (array_key_exists('embedded', $propOptions) && $propOptions['embedded'] == true) ? true : false);
             }
         }else{
             $this->$property = new $colType($arguments[0]);
@@ -338,118 +350,27 @@ class BaseClass
                 $colType = $this->typePath . $columnType;
                 $onerow = false;
 
-                return (method_exists($this, 'getValue')) ? $this->$property->getValue() : $this->$property;
+                $propOptions = $this->getColumnOptions($property);
+
+                switch ($this->getColumnType($property)) {
+                    case 'ODateTime':
+                        dump($property);die;
+                        if (isset($propOptions['embedded']) && $propOptions['embedded'] == true) {
+                            $value = $this->$property->setPattern($this->dtFormat)->getValue(true);
+                        }
+                        break;
+
+                    default:
+                        $value=$this->$property->getValue();
+                        break;
+                }
+
+                return $value;
                 break;
 
             case 'set':
                 $this->checkUpdatedProb(lcfirst(substr($name, 3)),$arguments[0]);
                 $this->setProperty($property,$arguments);
-
-                /*
-                switch($this->getColumnType($property)) {
-                    case 'OLink':
-                        $onerow = true;
-                    case 'OLinkList':
-                    case 'OLinkSet':
-                    case 'OLinkMap':
-                        if($this->ifHasLinkedClass($property)) {
-
-                            $linkedObj = $this->getNameSpace() . $this->getColumnOptions($property) ['class'];
-                            $repoClass = $this->createRepository($this->getColumnOptions($property) ['class']);
-                            $data = $onerow ? [ $arguments[0] ] : (is_null($arguments[0]) ? [] : $arguments[0]);
-                            $obj = [];
-
-                            foreach($data as $item) {
-                                if($item != null) {
-                                    if($item instanceof ID) {
-                                        $response = $repoClass->selectByRid($item);
-                                        if($response->result instanceof BaseClass) {
-                                            $obj[] = $response->result;
-                                            $this->addField($property);
-                                        }
-
-                                        if($response->result instanceof ORecord) {
-                                            $obj[] = new $linkedObj($this->cm, $response->result);
-                                            $this->addField($property);
-                                        }
-                                    } else {
-                                        $obj[] = $item;
-                                    }
-                                } else {
-                                    $obj[] = null;
-                                }
-                            }
-                            $this->$property = $onerow ? new $colType($obj[0]) : new $colType($obj);
-                        } else {
-                            if(isset($arguments[0])) {
-                                $data = $onerow ? [ $arguments[0] ] : $arguments[0];
-                                $returnData = [];
-
-                                foreach($data as $item) {
-                                    if(!is_null($item) && !is_string($item)) {
-                                        if($item instanceof BaseClass)
-                                        {
-                                            $item = $item->getRid();
-                                        }
-                                        if(!($item instanceof ID)) throw new InvalidRecordIdString();
-                                    }
-
-                                    if(is_string($item)) {
-                                        $id = new ID($item);
-                                        $returnData[] = $id;
-                                    } else if($item instanceof ID) {
-                                        $returnData[] = $item;
-                                    }
-                                }
-
-                                $this->$property = $onerow ? new $colType($returnData[0]) : new $colType($returnData);
-                            }
-                        }
-                        break;
-                    case 'OEmbeddedMap':
-                        $data = $arguments[0];
-                        $data = is_array($data) ? json_decode(json_encode($data)) : [$data];
-                        $newdata=[];
-                        foreach($data as $index => $item)
-                        {
-                            $item = is_array($item) ? json_decode(json_encode($item)) : $item;
-                            if(is_object($item))
-                            {
-                                $newdata[$index] = (property_exists($item,'oData')) ? ($item instanceof Record ? $item->getOdata() : $item->oData) : $item;
-                            }else{
-                                $newdata[$index] = $item;
-                            }
-
-                        }
-                        $this->$property = new $colType($newdata);
-                        break;
-                    case 'OEmbeddedList':
-                        if(is_array($arguments[0]))
-                        {
-                            $newdata=[];
-                            foreach($arguments[0] as $item)
-                            {
-                                $item = is_array($item) ? json_decode(json_encode($item)) : $item;
-                                $newdata[] = (property_exists($item,'oData')) ? ($item instanceof Record ? $item->getOdata() : $item->oData) : $item;
-                            }
-                            $this->$property = new $colType($newdata);
-                        }else{
-                            $this->$property = new $colType([]);
-                        }
-
-                        break;
-                    case 'ODateTime':
-                        if(!is_null($arguments[0])) {
-                            $this->$property = new $colType($arguments[0] instanceof \DateTime ? $arguments[0] : \DateTime::createFromFormat('Y-m-d H:i:s',date('Y-m-d H:i:s',strtotime($arguments[0]))));
-                        }
-                        break;
-                    default:
-                        $this->$property = new $colType($arguments[0]);
-                        break;
-                }
-*/
-                // Always return the value (Even on the set)
-                //return
                 break;
 
             default:
@@ -461,11 +382,14 @@ class BaseClass
     private function checkUpdatedProb($property,$value)
     {
         $oldValue = $this->{'get'.ucfirst($property)}();
+
         $oldValue = $oldValue instanceof BaseType ? $oldValue->getValue() : $oldValue;
+        $oldValue = $oldValue instanceof ID ? $oldValue->__toString() : $oldValue;
         $oldValue = $oldValue instanceof Record ? $oldValue->getOData() : $oldValue;
         $oldValue = is_object($oldValue) ? $this->toArray($oldValue) : $oldValue;
         $oldValue = md5(is_array($oldValue) ? json_encode($oldValue) : $oldValue);
 
+        $value = $value instanceof ID ? $value->__toString() : $value;
         $value = is_object($value) ? $this->toArray($value) : $value;
         $value = md5(is_array($value) ? json_encode($value) : $value);
 
@@ -736,7 +660,7 @@ class BaseClass
     public function getToMapProperties($object)
     {
         return array_diff_key(get_object_vars($object), array_flip(array(
-            'index', 'parent','modified','versionHash','record','props','cm','typePath','propAnnotations','updatedProps', 'dateAdded', 'dateRemoved', 'versionHistory'
+            'index', 'parent','modified','versionHash','record','props','cm','typePath','propAnnotations','updatedProps', 'dateAdded', 'dateRemoved', 'versionHistory','dtFormat'
         )));
     }
 
@@ -753,12 +677,13 @@ class BaseClass
         }
         return $array;
     }
+
     public function toArray($object = null)
     {
         $object = $object == null ? $object = $this : $object;
-        $array = $object->getToMapProperties($object);
-        array_walk_recursive($array, function (&$value){
-            $value = $value instanceof BaseType ? $value->getValue() : $value;
+        $array = $object instanceof BaseClass ? $object->getToMapProperties($object) : get_object_vars($object);
+        array_walk_recursive($array, function (&$value, $index) use($object) {
+            $value = $value instanceof BaseType ? (method_exists($object,'get'.ucfirst($index)) ? $object->{'get'.ucfirst($index)}() : $value->getValue()) : $value;
             $value = $value instanceof ID ? '#'.$value->cluster.':'.$value->position : $value;
             if ($value instanceof BaseClass) {
                 $value = $value->toArray();
