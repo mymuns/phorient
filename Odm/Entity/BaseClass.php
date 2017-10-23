@@ -352,16 +352,14 @@ class BaseClass
 
                 $propOptions = $this->getColumnOptions($property);
 
+                if (!method_exists($this->$property, 'getValue'))  return $value = $this->$property;
+
                 switch ($this->getColumnType($property)) {
                     case 'ODateTime':
-                        if (isset($propOptions['embedded']) && $propOptions['embedded'] == true) {
-                            $value = $this->$property->setPattern($this->dtFormat)->getValue(true);
-                        }
+                        $value = (isset($propOptions['embedded']) && $propOptions['embedded'] == true) ? $value = $this->$property->setPattern($this->dtFormat)->getValue(true) : $this->$property->getValue();
                         break;
-
                     default:
-                        $value=$this->$property->getValue();
-                        break;
+                        $value = $this->$property->getValue();
                 }
 
                 return $value;
