@@ -241,8 +241,9 @@ class BaseClass
             }
         }elseif ($columnType === 'OLinkList') {
             $isRecordObject = false;
+            $result = [];
+
             if (is_array($arguments[0])) {
-                $result = [];
 
                 foreach ($arguments[0] as $argument) {
                     if ($this->ifHasLinkedClass($property)) {
