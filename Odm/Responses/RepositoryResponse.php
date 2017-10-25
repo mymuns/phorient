@@ -15,6 +15,8 @@
 namespace BiberLtd\Bundle\Phorient\Odm\Responses;
 
 
+use BiberLtd\Bundle\Phorient\Services\ClassDataManipulator;
+
 class RepositoryResponse{
 	/**
 	 * @var int
@@ -58,4 +60,10 @@ class RepositoryResponse{
 	public function setResult($result){
 		$this->result = $result;
 	}
+
+	public function toJson()
+    {
+        $this->result = (new ClassDataManipulator())->output($this->result,'json');
+        return $this;
+    }
 }
