@@ -22,6 +22,7 @@ use BiberLtd\Bundle\Phorient\Odm\Responses\RepositoryResponse;
 use BiberLtd\Bundle\Phorient\Odm\Types\BaseType;
 use BiberLtd\Bundle\Phorient\Odm\Types\ORecordId;
 use BiberLtd\Bundle\Phorient\Services\ClassManager;
+use BiberLtd\Bundle\Phorient\Services\Metadata;
 use BiberLtd\Bundle\Phorient\Services\PhpOrient;
 use PhpOrient\Protocols\Binary\Data\ID;
 use PhpOrient\Protocols\Binary\Data\Record;
@@ -33,12 +34,26 @@ abstract class BaseRepository implements RepositoryInterface
     protected $controller;
     private $fetchPlan = false;
     private $cm;
-
+    private $entityClass;
+    /**
+     * @var Metadata $metadata;
+     */
+    private $metadata;
 
     public function __construct(ClassManager $cm)
     {
         $this->cm = $cm;
         $this->oService = $cm->getConnection($cm->currentDb);
+    }
+
+    public function setEntityClass(BaseClass $entity)
+    {
+        $this->entityClass = $entity;
+    }
+
+    public function setMetadata(Metadata $metadata)
+    {
+        $this->metadata = $metadata;
     }
 
     /**
@@ -111,7 +126,7 @@ abstract class BaseRepository implements RepositoryInterface
 
         //$resultSet = $this->oService->query($query, $limit, $fetchPlan);
         $resultSet = $this->queryAsync($query, $limit, '*:-1');
-        return new RepositoryResponse($resultSet);
+        return $resultSet;
     }
 
     public function queryAsync($query, $limit=20, $fetchPlan = '*:0')
@@ -123,7 +138,14 @@ abstract class BaseRepository implements RepositoryInterface
 
         };
         $resultSet = $this->oService->queryAsync($query, [ 'limit'=>$limit, 'fetch_plan' => $fetchPlan, '_callback' => $myFunction ]);
-        return $resultSet;
+
+        $resultData = [];
+        foreach($resultSet as $row)
+        {
+            $linkedClass = $this->cm->getEntityPath().$row->getOClass();
+            $resultData[] = new $linkedClass($this->cm,$row);
+        }
+        return new RepositoryResponse($resultData);
     }
 
     public function setFetchPlan($fetchString = '*:0')
