@@ -13,24 +13,31 @@ use BiberLtd\Bundle\Phorient\Odm\Repository\BaseRepository;
 use Doctrine\Common\Annotations\AnnotationReader;
 use PhpOrient\PhpOrient;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use PhpOrient\Protocols\Binary\Data\Record;
+use BiberLtd\Bundle\Phorient\Odm\Types\ORecordId;
+use BiberLtd\Bundle\Phorient\Services\ClassDataManipulator;
 
 class ClassManager
 {
 
     private $oService;
     private $cRepositoryFactory;
+    private $cMetadataFactory;
     private $config;
     private $annotationReader;
     private $container;
     public $currentDb;
     private $entityPath;
+    private $dataManipulator;
 
     public function __construct(ContainerInterface $container =  null, CMConfig $config=null)
     {
         $this->config = $config;
         $this->container = $container;
         $this->cRepositoryFactory = new ClassRepositoryFactory();
+        $this->cMetadataFactory = new ClassMetadataFactory();
         $this->annotationReader = new AnnotationReader();
+        $this->dataManipulator = new ClassDataManipulator();
 
     }
 
@@ -85,8 +92,37 @@ class ClassManager
         $this->entityPath[$bundleName]=$path;
     }
 
-    public function getEntityPath($bundleName)
+    public function getEntityPath($bundleName=null)
     {
+        if(is_null($bundleName)) $bundleName = $this->container->getRequest()->attributes->get('_template')->get('bundle');
         return $this->entityPath[$bundleName];
+    }
+
+    /**
+     * @param $entityClass
+     * @return Metadata
+     */
+    public function getMetadata($entityClass)
+    {
+        return $this->cMetadataFactory->getMetadata($this,$entityClass);
+
+    }
+    public function convertRecordToOdmObject($entityClass, Record $record)
+    {
+        $metadata = $this->getMetadata($entityClass);
+        $recordData = $record->getOData();
+        foreach ($metadata->getColumns()->toArray() as $propName => $annotations)
+        {
+            if(array_key_exists($propName, $recordData)) {
+                $entityClass->setProperty($propName,array($recordData[$propName]));
+            } else {
+                $entityClass->setProperty($propName,array(null));
+            }
+        }
+
+    }
+    public function getDataManipulator()
+    {
+        return $this->dataManipulator;
     }
 }
