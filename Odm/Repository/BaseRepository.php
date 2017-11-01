@@ -140,12 +140,12 @@ abstract class BaseRepository implements RepositoryInterface
         $resultSet = $this->oService->queryAsync($query, [ 'limit'=>$limit, 'fetch_plan' => $fetchPlan, '_callback' => $myFunction ]);
 
         $resultData = [];
-        foreach($resultSet as $row)
+        /*foreach($resultSet as $row)
         {
             $linkedClass = $this->cm->getEntityPath().$row->getOClass();
             $resultData[] = new $linkedClass($this->cm,$row);
-        }
-        return new RepositoryResponse($resultData);
+        }*/
+        return new RepositoryResponse($resultSet);
     }
 
     public function setFetchPlan($fetchString = '*:0')

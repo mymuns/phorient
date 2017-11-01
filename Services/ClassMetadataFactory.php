@@ -25,7 +25,7 @@ class ClassMetadataFactory
      */
     public function getMetadata(ClassManager $classManager, $entityClass)
     {
-        $metaHash = spl_object_hash($entityClass) . spl_object_hash($classManager);
+        $metaHash = md5($entityClass) . spl_object_hash($classManager);
 
         if (isset($this->metadataList[$metaHash])) {
             return $this->metadataList[$metaHash];
@@ -43,8 +43,8 @@ class ClassMetadataFactory
     {
 
         $metadata = new Metadata();
-        $metadata = $this->prepareProps($entityClass, $metadata);
-        $metadata = $this->preparePropAnnotations($entityClass, $metadata);
+        //$metadata = $this->prepareProps($entityClass, $metadata);
+        //$metadata = $this->preparePropAnnotations($entityClass, $metadata);
 
         return $metadata;
 
