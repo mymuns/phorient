@@ -129,15 +129,17 @@ abstract class BaseRepository implements RepositoryInterface
         return $resultSet;
     }
 
-    public function queryAsync($query, $limit=20, $fetchPlan = '*:0')
+    public function queryAsync($query, $limit = 100, $fetchPlan = '*:0', $limitless = false)
     {
-
         $return = new Record();
         $myFunction = function(Record $record) use ($return) {
             $return = $record;
-
         };
-        $resultSet = $this->oService->queryAsync($query, [ 'limit'=>$limit, 'fetch_plan' => $fetchPlan, '_callback' => $myFunction ]);
+
+        $options = ['fetch_plan' => $fetchPlan, '_callback' => $myFunction ];
+        $options = $limitless ? $options : array_merge($options, ['limit'=>$limit]);
+
+        $resultSet = $this->oService->queryAsync($query, $options);
 
         $resultData = [];
         /*foreach($resultSet as $row)
