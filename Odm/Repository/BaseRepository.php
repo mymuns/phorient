@@ -121,11 +121,11 @@ abstract class BaseRepository implements RepositoryInterface
      *
      * @return mixed
      */
-    public function query($query, $limit = 20, $fetchPlan = '*:-1')
+    public function query($query, $limit = 20, $fetchPlan = '*:0')
     {
 
         //$resultSet = $this->oService->query($query, $limit, $fetchPlan);
-        $resultSet = $this->queryAsync($query, $limit, '*:-1');
+        $resultSet = $this->queryAsync($query, $limit, '*:0');
         return $resultSet;
     }
 

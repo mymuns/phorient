@@ -54,6 +54,20 @@ class RepositoryResponse{
 		return $this;
 	}
 
+    public function getCount()
+    {
+        return is_array($this->result) ? count($this->result) : 0;
+    }
+
+    public function getSingularResult()
+    {
+        return $this->getCount() >0 ? $this->result[0]->getOData() : null;
+    }
+
+    public function getResult()
+    {
+        return $this->result;
+    }
 	/**
 	 * @param $result
 	 */
@@ -66,4 +80,5 @@ class RepositoryResponse{
         $this->result = (new ClassDataManipulator())->output($this->result,'json');
         return $this;
     }
+
 }
