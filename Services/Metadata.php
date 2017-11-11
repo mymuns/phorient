@@ -30,6 +30,17 @@ class Metadata
     private $columns = [];
 
     /**
+     * Metadata constructor.
+     */
+    public function __construct()
+    {
+        $this->props = new ArrayCollection();
+        $this->propAnnotations = new ArrayCollection();
+        $this->columns = new ArrayCollection();
+    }
+
+
+    /**
      * @return array
      */
     public function getProps(): array
@@ -91,7 +102,6 @@ class Metadata
 
         return $this;
     }
-
     public function setColumn($key,$columnAnnotation)
     {
         $this->columns->set($key,$columnAnnotation);

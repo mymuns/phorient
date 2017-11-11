@@ -61,7 +61,7 @@ class RepositoryResponse{
 
     public function getSingularResult()
     {
-        return $this->getCount() >0 ? $this->result[0]->getOData() : null;
+        return $this->getCount() >0 ? $this->result[0] : null;
     }
 
     public function getResult()
@@ -77,7 +77,7 @@ class RepositoryResponse{
 
 	public function toJson()
     {
-        $this->result = (new ClassDataManipulator())->output($this->result,'json');
+        $this->result = (new ClassDataManipulator())->output($this->result,'array');
         return $this;
     }
 

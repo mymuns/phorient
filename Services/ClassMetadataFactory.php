@@ -43,9 +43,8 @@ class ClassMetadataFactory
     {
 
         $metadata = new Metadata();
-        //$metadata = $this->prepareProps($entityClass, $metadata);
-        //$metadata = $this->preparePropAnnotations($entityClass, $metadata);
-
+        $metadata = $this->prepareProps($entityClass, $metadata);
+        $metadata = $this->preparePropAnnotations($entityClass, $metadata);
         return $metadata;
 
     }
@@ -69,7 +68,7 @@ class ClassMetadataFactory
         $annoReader = new AnnotationReader();
         foreach($metadata->getProps() as $aProperty) {
             $propName=$aProperty->getName();
-            $aPropertyReflection = new \ReflectionProperty(get_class($class), $propName);
+            $aPropertyReflection = new \ReflectionProperty($class, $propName);
             $propAnnotations=$annoReader->getPropertyAnnotations($aPropertyReflection);
             $metadata->setPropAnnotation($propName,$propAnnotations);
             if($propName == 'rid') {
@@ -80,6 +79,6 @@ class ClassMetadataFactory
             }
         }
 
-        return $this;
+        return $metadata;
     }
 }

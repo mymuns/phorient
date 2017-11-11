@@ -35,6 +35,7 @@ abstract class BaseRepository implements RepositoryInterface
     private $fetchPlan = false;
     private $cm;
     private $entityClass;
+    private $bundle;
     /**
      * @var Metadata $metadata;
      */
@@ -54,6 +55,22 @@ abstract class BaseRepository implements RepositoryInterface
     public function setMetadata(Metadata $metadata)
     {
         $this->metadata = $metadata;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getBundle()
+    {
+        return $this->bundle;
+    }
+
+    /**
+     * @param mixed $bundle
+     */
+    public function setBundle($bundle)
+    {
+        $this->bundle = $bundle;
     }
 
     /**
@@ -140,13 +157,8 @@ abstract class BaseRepository implements RepositoryInterface
         $options = $limitless ? $options : array_merge($options, ['limit'=>$limit]);
 
         $resultSet = $this->oService->queryAsync($query, $options);
+        foreach($resultSet as &$row) $row = $this->cm->convertRecordToOdmObject($row,$this->getBundle());
 
-        $resultData = [];
-        /*foreach($resultSet as $row)
-        {
-            $linkedClass = $this->cm->getEntityPath().$row->getOClass();
-            $resultData[] = new $linkedClass($this->cm,$row);
-        }*/
         return new RepositoryResponse($resultSet);
     }
 

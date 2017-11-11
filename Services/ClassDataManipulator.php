@@ -13,7 +13,7 @@ use BiberLtd\Bundle\Phorient\Odm\Types\BaseType;
 class ClassDataManipulator
 {
 
-    private $ignored = array('index', 'parent','modified','versionHash', 'cm','typePath', 'updatedProps', 'dateAdded', 'dateRemoved', 'versionHistory','dtFormat');
+    private $ignored = array('index', 'parent','modified','versionHash', 'typePath', 'updatedProps', 'dateAdded', 'dateRemoved', 'versionHistory','dtFormat');
 
     /**
      * @param $object
@@ -74,11 +74,11 @@ class ClassDataManipulator
         return $array;
     }
 
-    public function toArray($object,$props)
+    public function toArray($object)
     {
-        $array = $object instanceof BaseClass ? $this->getToMapProperties($object) : get_object_vars($object);
+        $array = $object instanceof BaseClass ? $this->getToMapProperties($object) : (is_object($object) ? get_object_vars($object) : $object);
+        if(!is_array($array)) return $array;
         array_walk_recursive($array, function (&$value, $index) use($object) {
-            $value = $value instanceof Record ? $value->getOData() : $value;
             $value = $value instanceof BaseType ? (method_exists($object,'get'.ucfirst($index)) ? $object->{'get'.ucfirst($index)}() : $value->getValue()) : $value;
             $value = $value instanceof ID ? '#'.$value->cluster.':'.$value->position : $value;
             if ($value instanceof BaseClass) {

@@ -9,6 +9,7 @@
 namespace BiberLtd\Bundle\Phorient\Services;
 
 
+use BiberLtd\Bundle\Phorient\Odm\Entity\BaseClass;
 use BiberLtd\Bundle\Phorient\Odm\Repository\BaseRepository;
 use Doctrine\Common\Annotations\AnnotationReader;
 use PhpOrient\PhpOrient;
@@ -104,22 +105,34 @@ class ClassManager
      */
     public function getMetadata($entityClass)
     {
+        $entityClass = $entityClass instanceof BaseClass ? get_class($entityClass) : $entityClass;
         return $this->cMetadataFactory->getMetadata($this,$entityClass);
 
     }
-    public function convertRecordToOdmObject($entityClass, Record $record)
+    public function convertRecordToOdmObject(Record $record,$bundle)
     {
+        $class = $this->getEntityPath($bundle).$record->getOClass();
+        $entityClass =  new $class;
         $metadata = $this->getMetadata($entityClass);
         $recordData = $record->getOData();
         foreach ($metadata->getColumns()->toArray() as $propName => $annotations)
         {
             if(array_key_exists($propName, $recordData)) {
-                $entityClass->setProperty($propName,array($recordData[$propName]));
+                $entityClass->$propName = $recordData[$propName] instanceof Record ? $this->convertRecordToOdmObject($recordData[$propName],$bundle) : $this->arrayToObject($recordData[$propName],$bundle);
             } else {
-                $entityClass->setProperty($propName,array(null));
+                $entityClass->$propName ==null;
             }
         }
+        $entityClass->setRid($record->getRid());
+        return $entityClass;
+    }
+    private function arrayToObject($arrayObject,$bundle)
+    {
 
+        if(is_array($arrayObject))
+            foreach ($arrayObject as &$value) $value = $value instanceof Record ? $this->convertRecordToOdmObject($value,$bundle) : (is_array($value) ? $this->arrayToObject($value,$bundle): $value);
+
+        return $arrayObject;
     }
     public function getDataManipulator()
     {

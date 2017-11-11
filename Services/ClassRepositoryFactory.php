@@ -68,9 +68,8 @@ class ClassRepositoryFactory
         }
 
         $repository =  new $repositoryClassName($classManager);
-
         $repository->setMetadata($metadata);
-
+        $repository->setBundle($bundle);
         return $repository;
     }
 }
