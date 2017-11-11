@@ -34,6 +34,8 @@ class BaseClass
 {
     /**
      * @ORM\Column(type="ORecordId")
+     * @JMS\Accessor(getter="getStringId")
+     * @JMS\Exclude(if="object.isNotRecordObject()")
      */
     public $rid = null;
 
@@ -51,6 +53,7 @@ class BaseClass
 
     /**
      * @var \DateTime
+     * @JMS\Exclude(if="object.isNotRecordObject()")
      */
     protected $dateUpdated;
 
@@ -97,6 +100,15 @@ class BaseClass
     public function __construct($timezone = 'Europe/Istanbul')
     {
 
+    }
+
+    public function isNotRecordObject()
+    {
+        return $this->rid->getValue()->cluster == -1 && $this->rid->getValue()->position == -1 ? true : false;
+    }
+    public function getStringId()
+    {
+        return '#'.$this->rid->getValue()->cluster.':'.$this->rid->getValue()->position;
     }
 
     /**
