@@ -106,7 +106,7 @@ abstract class BaseRepository implements RepositoryInterface
      *
      * @return mixed
      */
-    public function query($query, $limit = 20, $fetchPlan = '*:0')
+    public function query($query, $limit = null, $fetchPlan = '*:0')
     {
 
         $resultSet = $this->oService->query($query, $limit, $fetchPlan);
